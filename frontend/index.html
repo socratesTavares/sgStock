@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <script>
+        // Guarda de rota: Executado imediatamente antes do carregamento da página
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Stock de Equipamentos de Rede</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="app-container">
+
+        <!-- NAVEGAÇÃO / SIDEBAR LATERAL -->
+        <aside class="sidebar" id="sidebar">
+            
+            <div class="sidebar-header">
+                <div class="brand">
+                    <h1>Gestão de Stock</h1>
+                    <span class="badge-subtitle">Equipamentos de Rede</span>
+                </div>
+                <button class="btn-sidebar-toggle close-btn" onclick="toggleSidebar()"
+                    aria-label="Fechar Menu">&times;</button>
+            </div>
+            <nav class="main-nav">
+                <button class="nav-btn active" data-tab="tab-visao-geral">Visão Geral</button>
+                <button class="nav-btn" data-tab="tab-inventario">Inventário</button>
+                <button class="nav-btn" data-tab="tab-movimentacoes">Movimentações</button>
+                <button class="nav-btn" data-tab="tab-relatorios">Relatórios</button>
+                <!-- Este botão só ficará visível para Administradores -->
+                <button class="nav-btn" data-tab="tab-usuarios">Registar Utilizador</button>
+                <!-- Exemplo de Botão no Cabeçalho ou Menu -->
+                
+            </nav>
+        </aside>
+
+        <!-- MÁSCARA / OVERLAY PARA MOBILE -->
+        <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <!-- ÁREA PRINCIPAL DE CONTEÚDO -->
+        <div class="main-wrapper">
+
+            <!-- CABEÇALHO PARA DISPOSITIVOS MÓVEIS -->
+            <header class="mobile-header">
+                <button class="btn-sidebar-toggle open-btn" onclick="toggleSidebar()"
+                    aria-label="Abrir Menu">&#9776;</button>
+                <div class="brand">
+                    <h1>Gestão de Stock</h1>
+                    <span class="badge-subtitle">Equipamentos de Rede</span>
+                </div>
+            </header>
+
+            <main class="container">
+<!-- Barra Superior / Topbar -->
+<header class="topbar">
+    <div class="user-profile">
+        <div class="user-avatar" id="avatar-inicial">U</div>
+        <div class="user-details">
+            <span class="user-name" id="user-nome">Utilizador</span>
+            <span class="user-role" id="user-perfil">Técnico</span>
+        </div>
+    </div>
+
+    <!-- Botão de Logout Estilizado -->
+    <button onclick="logout()" class="btn-logout" title="Terminar Sessão">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        <span>Sair</span>
+    </button>
+</header>
+                <!-- MENSAGEM DE ERRO/ESTADO DE LIGAÇÃO -->
+                <div id="api-alert" class="alert alert-danger" style="display: none;">
+                    Não foi possível ligar à Base de Dados. Verifique se o servidor backend está em execução.
+                </div>
+
+                <!-- ABA 1: VISÃO GERAL -->
+                <section id="tab-visao-geral" class="tab-content active">
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <span class="kpi-title">Modelos Cadastrados</span>
+                            <span class="kpi-value" id="kpi-total-modelos">0</span>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="kpi-title">Total de Unidades em Stock</span>
+                            <span class="kpi-value" id="kpi-total-unidades">0</span>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="kpi-title">Entradas Registadas</span>
+                            <span class="kpi-value" id="kpi-total-entradas">0</span>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="kpi-title">Transferências Efetuadas</span>
+                            <span class="kpi-value" id="kpi-total-transferencias">0</span>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Ações Rápidas</h2>
+                        </div>
+                        <div class="quick-actions">
+                            <button class="btn btn-primary" onclick="abrirModal('modal-modelo')">+ Novo Modelo</button>
+                            <button class="btn btn-success" onclick="abrirModal('modal-entrada')">+ Registar
+                                Entrada</button>
+                            <button class="btn btn-secondary" onclick="abrirModal('modal-transferencia')"> Efetuar
+                                Transferência</button>
+                            <button class="btn btn-print" onclick="mudarAba('tab-relatorios')"> Emitir Guia /
+                                Relatório</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Últimas Movimentações</h2>
+                        </div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Data/Hora</th>
+                                        <th>Tipo</th>
+                                        <th>Equipamento</th>
+                                        <th>Qtd</th>
+                                        <th>Origem / Local</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="corpo-tabela-resumo-movimentacoes">
+                                    <!-- Preenchido via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ABA 2: INVENTÁRIO -->
+                <section id="tab-inventario" class="tab-content">
+                    <div class="card">
+                        <div class="card-header flex-between">
+                            <div>
+                                <h2>Inventário / Stock Atual</h2>
+                                <p class="section-desc">Consulte e gira o stock de equipamentos em tempo real.</p>
+                            </div>
+                            <div class="header-actions">
+                                <button class="btn btn-primary btn-sm" onclick="abrirModal('modal-modelo')">+ Novo
+                                    Modelo</button>
+                                <button class="btn btn-success btn-sm" onclick="abrirModal('modal-entrada')">+
+                                    Entrada</button>
+                            </div>
+                        </div>
+
+                        <!-- Pesquisa e Filtros -->
+                        <div class="filter-bar">
+                            <input type="text" id="search-inventario"
+                                placeholder="Pesquisar por Marca, Modelo, P/N, S/N ou Localização..."
+                                oninput="filtrarInventario()">
+                        </div>
+
+                        <div class="table-responsive">
+                            <table id="tabela-stock">
+                                <thead>
+                                    <tr>
+                                        <th>Marca</th>
+                                        <th>Modelo</th>
+                                        <th>Part Number</th>
+                                        <th>Serial Numbers</th>
+                                        <th>Localização / Instituição</th>
+                                        <th>Qtd</th>
+                                        <th class="text-right">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="corpo-tabela-stock">
+                                    <!-- Gerado via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ABA 3: MOVIMENTAÇÕES -->
+                <section id="tab-movimentacoes" class="tab-content">
+                    <div class="card">
+                        <div class="card-header flex-between">
+                            <h2>Histórico de Entradas de Stock</h2>
+                            <button class="btn btn-success btn-sm" onclick="abrirModal('modal-entrada')">+ Registar Nova
+                                Entrada</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table id="tabela-historico">
+                                <thead>
+                                    <tr>
+                                        <th>Data/Hora</th>
+                                        <th>Equipamento</th>
+                                        <th>Quantidade</th>
+                                        <th>Instituição / Destino</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="corpo-tabela-historico">
+                                    <!-- Gerado via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header flex-between">
+                            <h2>Histórico de Transferências</h2>
+                            <button class="btn btn-primary btn-sm" onclick="abrirModal('modal-transferencia')">+
+                                Transferir Equipamento</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table id="tabela-transferencias">
+                                <thead>
+                                    <tr>
+                                        <th>Data/Hora</th>
+                                        <th>Equipamento</th>
+                                        <th>Qtd</th>
+                                        <th>Origem</th>
+                                        <th>Destino</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="corpo-tabela-transferencias">
+                                    <!-- Gerado via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ABA 4: RELATÓRIOS E DOCUMENTOS OFICIAIS -->
+                <section id="tab-relatorios" class="tab-content">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Gerador de Documentos e Relatórios</h2>
+                            <p class="section-desc">Selecione o tipo de documento para gerar e pré-visualizar antes da
+                                impressão.</p>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="select-tipo-relatorio">Tipo de Documento:</label>
+                                <select id="select-tipo-relatorio" onchange="gerarPreviewRelatorio()">
+                                    <option value="guia-saida">Guia de Saída Oficial (Modelo MCTD / MoRENet)</option>
+                                    <option value="inventario">Inventário Completo (Stock Atual)</option>
+                                    <option value="entradas">Histórico Completo de Entradas</option>
+                                    <option value="transferencias">Histórico Completo de Transferências</option>
+                                    <option value="item">Ficha Individual de Item</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="container-select-item">
+                                <label for="select-item-relatorio" id="label-select-item">Selecione o Registo:</label>
+                                <select id="select-item-relatorio" onchange="gerarPreviewRelatorio()">
+                                    <!-- Preenchido via JS -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="preview-actions">
+                            <button class="btn btn-print" onclick="executarImpressao()"> Imprimir Documento</button>
+                        </div>
+
+                        <!-- Área de Pré-Visualização -->
+                        <div id="area-preview-impressao" class="paper-preview">
+                            <!-- Conteúdo montado dinamicamente via JS -->
+                        </div>
+                    </div>
+                </section>
+
+                <!--Seccao de formulario de Registros-->
+                <section id="tab-usuarios" class="tab-content">
+                    <h2>Registar Novo Utilizador</h2>
+                    <div id="alerta-usuario"
+                        style="display: none; padding: 10px; margin-bottom: 15px; border-radius: 4px;"></div>
+
+                    <form id="form-novo-usuario" style="max-width: 500px;">
+                        <div class="form-group">
+                            <label>Nome Completo</label>
+                            <input type="text" id="reg-nome" required class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="reg-email" required class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Senha</label>
+                            <input type="password" id="reg-senha" required class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Nível de Acesso (Perfil)</label>
+                            <select id="reg-perfil" required class="form-control">
+                                <option value="tecnico">Técnico</option>
+                                <option value="administrador">Administrador</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="margin-top: 15px;">Salvar
+                            Utilizador</button>
+                    </form>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAIS DE OPERAÇÃO                         -->
+    <!-- ========================================== -->
+
+    <!-- MODAL 1: Cadastrar Modelo -->
+    <div id="modal-modelo" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Cadastrar Modelo de Equipamento</h3>
+                <button class="btn-close" onclick="fecharModal('modal-modelo')">&times;</button>
+            </div>
+            <form id="form-equipamento">
+                <div class="form-group">
+                    <label for="marca">Marca:</label>
+                    <input type="text" id="marca" placeholder="Ex: Cisco, Mikrotik" required>
+                </div>
+                <div class="form-group">
+                    <label for="modelo">Modelo:</label>
+                    <input type="text" id="modelo" placeholder="Ex: ISR 4331, RB3011" required>
+                </div>
+                <div class="form-group">
+                    <label for="part-number">Part Number (P/N):</label>
+                    <input type="text" id="part-number" placeholder="Ex: ISR4331/K9" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary"
+                        onclick="fecharModal('modal-modelo')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Cadastrar Modelo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Registar Entrada -->
+    <div id="modal-entrada" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Registo de Entrada de Stock</h3>
+                <button class="btn-close" onclick="fecharModal('modal-entrada')">&times;</button>
+            </div>
+            <form id="form-entrada">
+                <div class="form-group">
+                    <label for="select-equipamento">Modelo de Equipamento:</label>
+                    <select id="select-equipamento" required>
+                        <option value="">-- Selecione um modelo --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="serial-numbers">Serial Numbers (S/N):</label>
+                    <textarea id="serial-numbers" rows="3" placeholder="Insira um por linha ou separados por vírgula"
+                        required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="instituicao">Instituição / Origem / Localização:</label>
+                    <input type="text" id="instituicao" placeholder="Ex: Sede Principal, Armazém A" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary"
+                        onclick="fecharModal('modal-entrada')">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Registar Entrada</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: Transferência -->
+    <div id="modal-transferencia" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Transferência de Equipamento</h3>
+                <button class="btn-close" onclick="fecharModal('modal-transferencia')">&times;</button>
+            </div>
+            <form id="form-transferencia">
+                <div class="form-group">
+                    <label for="select-equipamento-transf">Modelo de Equipamento:</label>
+                    <select id="select-equipamento-transf" required>
+                        <option value="">-- Selecione um modelo --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="origem-transf">Origem (Local Atual):</label>
+                    <select id="origem-transf" required>
+                        <option value="">-- Selecione a origem --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="destino-transf">Destino (Novo Local):</label>
+                    <input type="text" id="destino-transf" placeholder="Ex: Filial B, Armazém Central" required>
+                </div>
+                <div class="form-group">
+                    <label for="serials-transf">Serial Numbers a Transferir:</label>
+                    <select id="serials-transf" class="form-control" multiple size="6" required>
+                        <!-- As opções serão preenchidas dinamicamente pelo JavaScript -->
+                    </select>
+                    <small class="help-text">Mantenha a tecla <strong>Ctrl</strong> (ou <strong>Cmd</strong> no Mac)
+                        pressionada para selecionar múltiplos números de série.</small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary"
+                        onclick="fecharModal('modal-transferencia')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Efetuar Transferência</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 4: Editar Modelo / Registo -->
+    <div id="modal-editar" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Editar Registo de Equipamento e Stock</h3>
+                <button class="btn-close" onclick="fecharModal('modal-editar')">&times;</button>
+            </div>
+            <form id="form-editar-equipamento">
+                <!-- Campos Ocultos para Identificação -->
+                <input type="hidden" id="edit-id">
+                <input type="hidden" id="edit-entrada-id"> <!-- ADICIONADO: Guarda o ID da entrada de stock -->
+
+                <div class="form-group">
+                    <label for="edit-marca">Marca:</label>
+                    <input type="text" id="edit-marca" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-modelo">Modelo:</label>
+                    <input type="text" id="edit-modelo" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-part-number">Part Number (P/N):</label>
+                    <input type="text" id="edit-part-number" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-instituicao">Localização / Instituição:</label>
+                    <input type="text" id="edit-instituicao" placeholder="Ex: Armazém A, Sede">
+                </div>
+                <div class="form-group">
+                    <label for="edit-serials">Serial Numbers (S/N):</label>
+                    <textarea id="edit-serials" rows="4"
+                        placeholder="Insira um por linha ou separados por vírgula"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary"
+                        onclick="fecharModal('modal-editar')">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- ========================================== -->
+    <!-- Container para mensagens Toast -->
+    <div id="toast-container" class="toast-container"></div>
+    <script src="script.js"></script>
+
+</body>
+
+</html>
