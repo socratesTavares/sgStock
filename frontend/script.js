@@ -729,6 +729,37 @@ function abrirModalEditar(equipamentoId, entradaId = '', instituicao = '', seria
     abrirModal('modal-editar');
 }
 
+async function apagarEntrada(id) {
+    if (!confirm('Deseja realmente apagar esta entrada?')) return;
+
+    try {
+        const res = await fetchComAutenticacao(`${API_URL}/entradas/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (!res) return;
+
+        if (res.ok) {
+            // 1. Remove o item diretamente do state local
+            state.historicoEntradas = state.historicoEntradas.filter(item => item.id !== id);
+
+            // 2. Atualiza a tabela e as estatísticas no ecrã imediatamente
+            atualizarTabelaHistorico();
+            atualizarKPIs();
+
+            // 3. (Opcional) Recarrega os dados do servidor para sincronização completa
+            await carregarDadosDaBD();
+
+            mostrarNotificacao('Registo eliminado com sucesso!', 'sucesso');
+        } else {
+            const erro = await res.json();
+            mostrarNotificacao(erro.error || 'Erro ao apagar registo.', 'erro');
+        }
+    } catch (err) {
+        console.error('Erro ao apagar registo:', err);
+    }
+}
+
 async function eliminarRegistoLinha(entradaId, nomeModelo, instituicao) {
     if (!confirm(`Deseja remover as unidades de "${nomeModelo}" em "${instituicao}"?`)) return;
 

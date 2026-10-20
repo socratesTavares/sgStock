@@ -25,7 +25,13 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET; // Altere para uma chave segura
-
+// Desativa a cache HTTP em todas as rotas da API
+app.use('/api', (req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    next();
+});
 // Middleware de Autenticação (Protege as rotas da API)
 function autenticarToken(req, res, next) {
     const authHeader = req.headers['authorization'];
