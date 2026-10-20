@@ -419,8 +419,8 @@ app.put('/api/equipamentos/:id', autenticarToken, async (req, res) => {
     }
 });
 
-// Eliminar equipamento
-// Endpoint para apagar um registo de lote/entrada específico por ID da entrada
+
+// Endpoint para editar um registo de lote/entrada específico por ID da entrada
 app.put('/api/entradas/:id', autenticarToken, async (req, res) => {
     const { id } = req.params;
     const { instituicao, serials, quantidade, equipamentoNome } = req.body;
@@ -450,7 +450,51 @@ app.put('/api/entradas/:id', autenticarToken, async (req, res) => {
         res.status(500).json({ error: 'Erro interno ao atualizar entrada' });
     }
 });
+// Eliminar um registo de entrada e atualizar o stock correspondente
+app.delete('/api/entradas/:id', autenticarToken, async (req, res) => {
+    const { id } = req.params;
+    const client = await pool.connect();
 
+    try {
+        await client.query('BEGIN');
+
+        // 1. Procura a entrada para obter a quantidade e o ID do equipamento
+        const entradaRes = await client.query(
+            'SELECT * FROM historico_entradas WHERE id = $1',
+            [id]
+        );
+
+        if (entradaRes.rowCount === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Registo de entrada não encontrado.' });
+        }
+
+        const entrada = entradaRes.rows[0];
+
+        // 2. Apaga o registo do histórico de entradas
+        await client.query('DELETE FROM historico_entradas WHERE id = $1', [id]);
+
+        // 3. Atualiza (subtrai) o stock na tabela equipamentos usando APENAS o ID
+        if (entrada.equipamento_id) {
+            await client.query(
+                `UPDATE historico_entradas 
+                 SET quantidade = GREATEST(0, quantidade - $1) 
+                 WHERE id = $2`,
+                [entrada.quantidade || 0, entrada.equipamento_id]
+            );
+        }
+
+        await client.query('COMMIT');
+        res.json({ message: 'Registo eliminado e stock atualizado com sucesso!' });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Erro ao eliminar entrada:', error);
+        res.status(500).json({ error: 'Erro interno ao eliminar entrada.' });
+    } finally {
+        client.release();
+    }
+});
 // ==========================================
 // ENDPOINTS: ENTRADAS
 // ==========================================
