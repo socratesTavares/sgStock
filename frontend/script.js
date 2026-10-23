@@ -471,21 +471,27 @@ function filtrarInventario() {
 
 function atualizarTabelaHistorico() {
     const corpo = document.getElementById('corpo-tabela-historico');
+    if (!corpo) return;
     corpo.innerHTML = '';
 
-    if (state.historicoEntradas.length === 0) {
-        corpo.innerHTML = '<tr><td colspan="4" style="text-align:center;">Nenhuma entrada registada.</td></tr>';
+    if (!state.historicoEntradas || state.historicoEntradas.length === 0) {
+        corpo.innerHTML = '<tr><td colspan="5" style="text-align:center;">Nenhuma entrada registada.</td></tr>';
         return;
     }
 
     [...state.historicoEntradas].reverse().forEach(e => {
-        const serialsTexto = e.serials ? e.serials.join(', ') : 'N/A';
+        const serialsTexto = e.serials ? (Array.isArray(e.serials) ? e.serials.join(', ') : e.serials) : 'N/A';
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${e.dataHora}</td>
             <td>${e.equipamentoNome}<br><small style="color:var(--text-muted)">S/N: ${serialsTexto}</small></td>
             <td>+${e.quantidade}</td>
             <td>${e.instituicao}</td>
+            <td style="text-align: center;">
+                <button class="btn-danger btn-sm" onclick="apagarEntrada('${e.id}')" title="Eliminar entrada">
+                    <i class="fas fa-trash"></i> Eliminar
+                </button>
+            </td>
         `;
         corpo.appendChild(tr);
     });
@@ -493,15 +499,16 @@ function atualizarTabelaHistorico() {
 
 function atualizarTabelaTransferencias() {
     const corpo = document.getElementById('corpo-tabela-transferencias');
+    if (!corpo) return;
     corpo.innerHTML = '';
 
-    if (state.historicoTransferencias.length === 0) {
-        corpo.innerHTML = '<tr><td colspan="5" style="text-align:center;">Nenhuma transferência registada.</td></tr>';
+    if (!state.historicoTransferencias || state.historicoTransferencias.length === 0) {
+        corpo.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhuma transferência registada.</td></tr>';
         return;
     }
 
     [...state.historicoTransferencias].reverse().forEach(t => {
-        const serialsTexto = t.serials ? t.serials.join(', ') : 'N/A';
+        const serialsTexto = t.serials ? (Array.isArray(t.serials) ? t.serials.join(', ') : t.serials) : 'N/A';
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${t.dataHora}</td>
@@ -509,6 +516,11 @@ function atualizarTabelaTransferencias() {
             <td>${t.quantidade}</td>
             <td>${t.origem}</td>
             <td>${t.destino}</td>
+            <td style="text-align: center;">
+                <button class="btn-danger btn-sm" onclick="apagarTransferencia('${t.id}')" title="Eliminar transferência">
+                    <i class="fas fa-trash"></i> Eliminar
+                </button>
+            </td>
         `;
         corpo.appendChild(tr);
     });
@@ -1069,6 +1081,35 @@ function atualizarSeriaisDisponiveisTransf() {
         opt.textContent = sn;
         selectSerials.appendChild(opt);
     });
+}
+async function apagarTransferencia(id) {
+    if (!confirm('Deseja realmente apagar este registo de transferência?')) return;
+
+    try {
+        const res = await fetchComAutenticacao(`${API_URL}/transferencias/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (!res) return;
+
+        if (res.ok) {
+            // Remove o item diretamente do estado local
+            state.historicoTransferencias = state.historicoTransferencias.filter(item => item.id !== id);
+
+            // Atualiza tabelas e KPIs no ecrã
+            atualizarTabelaTransferencias();
+            atualizarKPIs();
+            await carregarDadosDaBD();
+
+            mostrarNotificacao('Transferência eliminada com sucesso!', 'success');
+        } else {
+            const erro = await res.json().catch(() => ({}));
+            mostrarNotificacao(erro.error || 'Erro ao apagar transferência.', 'error');
+        }
+    } catch (err) {
+        console.error('Erro ao apagar transferência:', err);
+        mostrarNotificacao('Erro de rede ao tentar apagar transferência.', 'error');
+    }
 }
 
 // Função para alternar entre as abas/secções do Dashboard (Fora de qualquer outra função)

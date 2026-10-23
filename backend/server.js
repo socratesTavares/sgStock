@@ -58,7 +58,29 @@ function verificarAdmin(req, res, next) {
     }
     return res.status(403).json({ error: 'Acesso negado. Apenas Administradores podem realizar esta ação.' });
 }
+// ==========================================
+// ELIMINAR TRANSFERÊNCIA POR ID
+// ==========================================
+app.delete('/api/transferencias/:id', autenticarToken, async (req, res) => {
+    const { id } = req.params;
 
+    try {
+        const result = await pool.query(
+            'DELETE FROM historico_transferencias WHERE id = $1 RETURNING *',
+            [id]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Registo de transferência não encontrado.' });
+        }
+
+        res.json({ message: 'Registo de transferência eliminado com sucesso!' });
+
+    } catch (error) {
+        console.error('Erro ao eliminar transferência:', error);
+        res.status(500).json({ error: 'Erro interno ao eliminar transferência.' });
+    }
+});
 // Criar o primeiro Administrador se a tabela estiver vazia
 async function criarAdminInicial() {
     try {
