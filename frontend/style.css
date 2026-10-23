@@ -480,49 +480,7 @@ tbody tr:hover {
 .guia-linha-nome { border-top: 1px solid #000; padding-top: 0.3rem; }
 
 /* ==========================================================================
-   7. Responsividade para Telas Pequenas (Mobile / Tablet)
-   ========================================================================== */
-@media (max-width: 768px) {
-    .sidebar {
-        transform: translateX(-100%);
-    }
-
-    .sidebar.active {
-        transform: translateX(0);
-    }
-
-    .sidebar-overlay.active {
-        display: block;
-    }
-
-    .close-btn {
-        display: block;
-    }
-
-    .main-wrapper {
-        margin-left: 0;
-    }
-
-    .mobile-header {
-        display: flex;
-    }
-
-    .container {
-        padding-top: 1.25rem;
-    }
-}
-
-@media print {
-    body * { visibility: hidden; }
-    #area-preview-impressao, #area-preview-impressao * { visibility: visible; }
-    #area-preview-impressao {
-        position: absolute;
-        left: 0; top: 0; width: 100%;
-        border: none; padding: 0;
-    }
-}
-/* ==========================================================================
-   Notificações Toast (Substituto do alert nativo)
+   7. Notificações Toast (Substituto do alert nativo)
    ========================================================================== */
 .toast-container {
     position: fixed;
@@ -591,7 +549,10 @@ tbody tr:hover {
         opacity: 1;
     }
 }
-/* Layout da Barra Superior */
+
+/* ==========================================================================
+   8. Barra Superior e Perfil de Utilizador
+   ========================================================================== */
 .topbar {
     display: flex;
     justify-content: space-between;
@@ -602,7 +563,6 @@ tbody tr:hover {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-/* Informações do Utilizador */
 .user-profile {
     display: flex;
     align-items: center;
@@ -640,7 +600,6 @@ tbody tr:hover {
     text-transform: capitalize;
 }
 
-/* Botão de Logout Moderno */
 .btn-logout {
     display: inline-flex;
     align-items: center;
@@ -674,4 +633,76 @@ tbody tr:hover {
 
 .btn-logout:hover svg {
     transform: translateX(2px);
+}
+
+/* ==========================================================================
+   9. Responsividade para Telas Pequenas (Mobile / Tablet) & Regras de Impressão
+   ========================================================================== */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.active {
+        transform: translateX(0);
+    }
+
+    .sidebar-overlay.active {
+        display: block;
+    }
+
+    .close-btn {
+        display: block;
+    }
+
+    .main-wrapper {
+        margin-left: 0;
+    }
+
+    .mobile-header {
+        display: flex;
+    }
+
+    .container {
+        padding-top: 1.25rem;
+    }
+}
+
+/* Regras de Impressão Aprimoradas (Remove Scrollbars e Elementos de Navegação) */
+@media print {
+    /* Esconde elementos de navegação, cabeçalhos de sistema e botões na impressão */
+    aside.sidebar,
+    header.topbar,
+    .mobile-header,
+    .preview-actions,
+    .form-row,
+    button {
+        display: none !important;
+    }
+
+    /* Oculta todas as abas que não sejam a de relatórios */
+    .tab-content:not(#tab-relatorios) {
+        display: none !important;
+    }
+
+    /* Expande totalmente a área de relatórios e preview, eliminando scrollbars e limites de altura */
+    #tab-relatorios,
+    #area-preview-impressao {
+        display: block !important;
+        max-height: none !important;
+        height: auto !important;
+        overflow: visible !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+    }
+
+    /* Remove limites do documento no corpo para impressão limpa A4 */
+    body, html {
+        height: auto !important;
+        overflow: visible !important;
+        background: white !important;
+    }
 }

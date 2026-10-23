@@ -942,7 +942,7 @@ function gerarPreviewRelatorio() {
                     <div class="guia-assinatura-box">
                         <div>Repart. de Património:</div>
                         <div class="guia-espaco-assinatura"></div>
-                        <div class="guia-linha-nome">_______________________</div>
+                        <div class="guia-linha-nome"></div>
                     </div>
                     <div class="guia-assinatura-box">
                         <div>Verificado por:</div>
