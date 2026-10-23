@@ -311,18 +311,62 @@ window.onclick = function (e) {
 function obterStockAtual() {
     const stockMap = [];
 
-    state.historicoEntradas.forEach(entrada => {
-        const serialsArray = Array.isArray(entrada.serials)
-            ? entrada.serials
+    // Mapeia todas as entradas registadas (histórico imutável)
+    (state.historicoEntradas || []).forEach(entrada => {
+        const eqId = String(entrada.equipamento_id || entrada.equipamentoId || '');
+        const eqNome = String(entrada.equipamento_nome || entrada.equipamentoNome || '').trim().toLowerCase();
+
+        // Converte os serials da entrada para array limpo
+        const serialsEntrada = Array.isArray(entrada.serials)
+            ? [...entrada.serials]
             : (typeof entrada.serials === 'string' ? entrada.serials.split(',').map(s => s.trim()) : []);
 
-        stockMap.push({
-            entradaId: entrada.id,
-            equipamentoId: entrada.equipamento_id || entrada.equipamentoId,
-            instituicao: entrada.instituicao,
-            serials: serialsArray,
-            total: entrada.quantidade || serialsArray.length || 1
+        // 1. Encontrar transferências associadas a este equipamento E que saíram desta instituição de origem
+        const transferenciasDestaOrigem = (state.historicoTransferencias || []).filter(transf => {
+            const tEqId = String(transf.equipamento_id || transf.equipamentoId || '');
+            const tEqNome = String(transf.equipamento_nome || transf.equipamentoNome || '').trim().toLowerCase();
+            
+            const mesmoEquipamento = (eqId && tEqId && eqId === tEqId) || (eqNome && tEqNome && eqNome === tEqNome);
+            const mesmaOrigem = String(transf.origem || '').trim().toLowerCase() === String(entrada.instituicao || '').trim().toLowerCase();
+
+            return mesmoEquipamento && mesmaOrigem;
         });
+
+        // 2. Calcular o total transferido e acumular serials que saíram
+        let quantidadeTransferida = 0;
+        const serialsTransferidos = [];
+
+        transferenciasDestaOrigem.forEach(transf => {
+            quantidadeTransferida += Number(transf.quantidade) || 0;
+
+            const serialsTransf = Array.isArray(transf.serials)
+                ? transf.serials
+                : (typeof transf.serials === 'string' ? transf.serials.split(',').map(s => s.trim()) : []);
+
+            serialsTransferidos.push(...serialsTransf);
+        });
+
+        // 3. Calcular a quantidade líquida disponível para este lote
+        const totalEntrada = Number(entrada.quantidade) || serialsEntrada.length || 1;
+        const totalDisponivel = Math.max(0, totalEntrada - quantidadeTransferida);
+
+        // 4. Filtrar os números de série disponíveis (excluindo os transferidos)
+        const serialsDisponiveis = serialsEntrada.filter(s => !serialsTransferidos.includes(s));
+
+        // 5. A localização mantém-se a instituição original da entrada no inventário
+        const instituicaoAtual = entrada.instituicao || 'N/A';
+
+        // Apenas adiciona ao mapa de stock se ainda houver unidades disponíveis (> 0)
+        if (totalDisponivel > 0) {
+            stockMap.push({
+                entradaId: entrada.id,
+                equipamentoId: entrada.equipamento_id || entrada.equipamentoId,
+                equipamentoNome: entrada.equipamento_nome || entrada.equipamentoNome,
+                instituicao: instituicaoAtual,
+                serials: serialsDisponiveis,
+                total: totalDisponivel
+            });
+        }
     });
 
     return stockMap;
@@ -1025,22 +1069,20 @@ function atualizarSeriaisDisponiveisTransf() {
         opt.textContent = sn;
         selectSerials.appendChild(opt);
     });
+}
 
-    // Função para alternar entre as abas/secções do Dashboard
+// Função para alternar entre as abas/secções do Dashboard (Fora de qualquer outra função)
 function mostrarSecao(idSecao) {
-    // 1. Oculta todas as secções de conteúdo (certifique-se de que todas as secções têm a classe 'secao-conteudo')
     const secoes = document.querySelectorAll('.data-tab');
     secoes.forEach(secao => {
         secao.style.display = 'none';
     });
 
-    // 2. Remove o destaque (classe 'active') de todos os botões da navegação
     const botoes = document.querySelectorAll('.nav-btn');
     botoes.forEach(btn => {
         btn.classList.remove('active');
     });
 
-    // 3. Exibe a secção selecionada
     const secaoAlvo = document.getElementById(idSecao);
     if (secaoAlvo) {
         secaoAlvo.style.display = 'flex';
@@ -1048,10 +1090,9 @@ function mostrarSecao(idSecao) {
         console.error(`A secção com o ID "${idSecao}" não foi encontrada.`);
     }
 
-    // 4. Destaca o botão que foi clicado
     const botaoAtivo = document.querySelector(`[data-tab="${idSecao}"]`);
     if (botaoAtivo) {
         botaoAtivo.classList.add('active');
     }
-}
+
 }

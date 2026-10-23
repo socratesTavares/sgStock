@@ -521,92 +521,27 @@ app.get('/api/transferencias', autenticarToken, async (req, res) => {
     }
 });
 
-// 2. Processar Nova Transferência (Guarda Histórico + Atualiza Stock na tabela historico_entradas)
+// 2. Processar Nova Transferência (Regista apenas no histórico de transferências)
 app.post('/api/transferencias', autenticarToken, async (req, res) => {
     const { id, equipamentoId, equipamentoNome, quantidade, serials, origem, destino, dataHora } = req.body;
 
-    const client = await pool.connect();
-
     try {
-        await client.query('BEGIN'); // Inicia a transação SQL
-
         const serialsParaBD = Array.isArray(serials) ? serials : [];
-        const dataMovimento = dataHora || new Date().toISOString(); // Define a data/hora atual caso não venha no body
+        const dataMovimento = dataHora || new Date().toISOString();
 
-        // 1. Guardar no Histórico de Transferências
-        await client.query(
+        // Regista estritamente no histórico de transferências.
+        // O histórico de entradas original permanece 100% imutável.
+        await pool.query(
             `INSERT INTO historico_transferencias (id, equipamento_id, equipamento_nome, quantidade, serials, origem, destino, data_hora) 
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
             [id, equipamentoId, equipamentoNome, quantidade, serialsParaBD, origem, destino, dataMovimento]
         );
 
-        // 2. Remover os números de série transferidos do local de ORIGEM
-        const resOrigem = await client.query(
-            `SELECT * FROM historico_entradas 
-             WHERE (equipamento_id = $1 OR equipamento_id::text = $1::text) 
-               AND LOWER(TRIM(instituicao)) = LOWER(TRIM($2))`,
-            [equipamentoId, origem]
-        );
-
-        if (resOrigem.rows.length > 0) {
-            const entradaOrigem = resOrigem.rows[0];
-            let serialsOrigem = entradaOrigem.serials || [];
-
-            if (typeof serialsOrigem === 'string') {
-                try { serialsOrigem = JSON.parse(serialsOrigem); } catch (e) { serialsOrigem = []; }
-            }
-
-            // Mantém apenas os serials que NÃO foram transferidos
-            const novosSerialsOrigem = serialsOrigem.filter(sn => !serialsParaBD.includes(sn));
-
-            await client.query(
-                `UPDATE historico_entradas SET serials = $1, quantidade = $2 WHERE id = $3`,
-                [novosSerialsOrigem, novosSerialsOrigem.length, entradaOrigem.id]
-            );
-        }
-
-        // 3. Adicionar os números de série ao local de DESTINO
-        const resDestino = await client.query(
-            `SELECT * FROM historico_entradas 
-             WHERE (equipamento_id = $1 OR equipamento_id::text = $1::text) 
-               AND LOWER(TRIM(instituicao)) = LOWER(TRIM($2))`,
-            [equipamentoId, destino]
-        );
-
-        if (resDestino.rows.length > 0) {
-            // Se já existe registo deste equipamento no destino, acrescenta os novos serials
-            const entradaDestino = resDestino.rows[0];
-            let serialsDestino = entradaDestino.serials || [];
-
-            if (typeof serialsDestino === 'string') {
-                try { serialsDestino = JSON.parse(serialsDestino); } catch (e) { serialsDestino = []; }
-            }
-
-            const novosSerialsDestino = [...new Set([...serialsDestino, ...serialsParaBD])];
-
-            await client.query(
-                `UPDATE historico_entradas SET serials = $1, quantidade = $2 WHERE id = $3`,
-                [novosSerialsDestino, novosSerialsDestino.length, entradaDestino.id]
-            );
-        } else {
-            // Se ainda não existe registo no destino, insere com a coluna data_hora preenchida
-            const novaEntradaId = Date.now().toString();
-            await client.query(
-                `INSERT INTO historico_entradas (id, equipamento_id, equipamento_nome, quantidade, serials, instituicao, data_hora)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                [novaEntradaId, equipamentoId, equipamentoNome, serialsParaBD.length, serialsParaBD, destino, dataMovimento]
-            );
-        }
-
-        await client.query('COMMIT'); // Confirma todas as alterações
-        res.status(201).json({ message: 'Transferência efetuada com sucesso' });
+        res.status(201).json({ message: 'Transferência registada com sucesso!' });
 
     } catch (err) {
-        await client.query('ROLLBACK'); // Desfaz as alterações se houver erro
-        console.error('Erro na transação de transferência:', err);
+        console.error('Erro ao registar transferência:', err);
         res.status(500).json({ error: err.message });
-    } finally {
-        client.release();
     }
 });
 
