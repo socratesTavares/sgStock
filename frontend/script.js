@@ -2,7 +2,7 @@
 // 1. Arquitectura e Estado Global
 // ==========================================================================
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'http://10.2.0.10/api';
 
 const state = {
     equipamentos: [],
