@@ -5,6 +5,11 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "migrate": "node migrations/run_migration.js",
+    "prod": "pm2 start ecosystem.config.js --env production",
+    "prod:reload": "pm2 reload ecosystem.config.js",
+    "prod:stop": "pm2 stop ecosystem.config.js",
+    "prod:logs": "pm2 logs sgstock-api",
     "dev": "nodemon server.js",
     "start:dev": "nodemon server.js"
   },
@@ -15,6 +20,8 @@
     "cors": "^2.8.6",
     "dotenv": "^18.0.6",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.7.2",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.23.1"
   },

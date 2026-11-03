@@ -1,0 +1,28 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^node --check frontend/script\\.js; node --check frontend/auth\\.js; node --check frontend/login\\.js; rg -n -i 'on\\(click\\|change\\|input\\|submit\\|keyup\\|keydown\\|load\\)\\\\s\\*=\\|<script\\(\\?!\\[\\^>\\]\\*\\\\bsrc=\\)' frontend -g '\\*\\.html'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node --check frontend/script\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node -e 'const fs=require\\(\"fs\"\\); const vm=require\\(\"vm\"\\); const src=fs\\.readFileSync\\(\"frontend/script\\.js\",\"utf8\"\\); const match=src\\.match\\(/function calcularTotalUnidadesEmStock\\\\\\(\\\\\\) \\\\\\{\\[\\\\s\\\\S\\]\\*\\?\\\\n\\\\\\}/\\); if\\(!match\\) throw new Error\\(\"KPI helper not found\"\\); const context=\\{state:\\{historicoEntradas:\\[\\{serials:\\[\"SN1\",\"SN2\"\\]\\}\\],historicoTransferencias:\\[\\{serials:\\[\"SN2\"\\],cancelado:false\\}\\]\\}\\}; vm\\.runInNewContext\\(match\\[0\\]\\+\"; result=calcularTotalUnidadesEmStock\\(\\)\",context\\); if\\(context\\.result!==1\\) throw new Error\\(\"expected transferred stock count 1, got \"\\+context\\.result\\); context\\.state\\.historicoTransferencias\\[0\\]\\.cancelado=true; vm\\.runInNewContext\\(match\\[0\\]\\+\"; result=calcularTotalUnidadesEmStock\\(\\)\",context\\); if\\(context\\.result!==2\\) throw new Error\\(\"expected canceled transfer count 2, got \"\\+context\\.result\\); console\\.log\\(\"Stock KPI behavior passed\"\\);'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node --% -e \"const fs=require\\('fs'\\); const vm=require\\('vm'\\); const src=fs\\.readFileSync\\('frontend/script\\.js','utf8'\\); const match=src\\.match\\(/function calcularTotalUnidadesEmStock\\\\\\(\\\\\\) \\\\\\{\\[\\\\s\\\\S\\]\\*\\?\\\\n\\\\\\}/\\); if\\(!match\\) throw new Error\\('helper missing'\\); const context=\\{state:\\{historicoEntradas:\\[\\{serials:\\['SN1','SN2'\\]\\}\\],historicoTransferencias:\\[\\{serials:\\['SN2'\\],cancelado:false\\}\\]\\}\\}; vm\\.runInNewContext\\(match\\[0\\]\\+'; result=calcularTotalUnidadesEmStock\\(\\)',context\\); if\\(context\\.result!==1\\) throw new Error\\('expected count 1, got '\\+context\\.result\\); context\\.state\\.historicoTransferencias\\[0\\]\\.cancelado=true; vm\\.runInNewContext\\(match\\[0\\]\\+'; result=calcularTotalUnidadesEmStock\\(\\)',context\\); if\\(context\\.result!==2\\) throw new Error\\('expected count 2, got '\\+context\\.result\\); console\\.log\\('Stock KPI behavior passed'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node --% -e \"const fs=require\\('fs'\\); const vm=require\\('vm'\\); const src=fs\\.readFileSync\\('frontend/script\\.js','utf8'\\); const extract=name=>\\{const m=src\\.match\\(new RegExp\\('function '\\+name\\+'\\\\\\\\\\(\\\\\\\\\\) \\\\\\\\\\{\\[\\\\\\\\s\\\\\\\\S\\]\\*\\?\\\\\\\\n\\\\\\\\\\}'\\)\\); if\\(!m\\) throw new Error\\(name\\+' missing'\\); return m\\[0\\]\\}; const context=\\{state:\\{historicoTransferencias:\\[\\{serials:\\['SN2'\\],cancelado:false\\}\\]\\},obterStockAtual:\\(\\)=>\\[\\{serials:\\['SN1','SN2'\\],total:2\\},\\{serials:\\['SN3'\\],total:1\\}\\]\\}; vm\\.runInNewContext\\(extract\\('obterSeriaisTransferidos'\\)\\+';'\\+extract\\('obterStockNaoTransferido'\\)\\+'; result=obterStockNaoTransferido\\(\\)',context\\); const actual=context\\.result\\.map\\(x=>x\\.serials\\.join\\(','\\)\\)\\.join\\('\\|'\\); if\\(actual!=='SN1\\|SN3'\\) throw new Error\\('unexpected visible stock '\\+actual\\); console\\.log\\('Inventory filter behavior passed'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node --check frontend/script\\.js; node --check backend/server\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

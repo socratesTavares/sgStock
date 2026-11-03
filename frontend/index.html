@@ -2,13 +2,7 @@
 <html lang="pt">
 
 <head>
-    <script>
-        // Guarda de rota: Executado imediatamente antes do carregamento da página
-        const token = localStorage.getItem('token');
-        if (!token) {
-            window.location.href = 'login.html';
-        }
-    </script>
+    <script src="auth.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestão de Stock de Equipamentos de Rede</title>
@@ -24,10 +18,11 @@
 
             <div class="sidebar-header">
                 <div class="brand">
+                    <img class="brand-logo" src="MoRENet_Logo.png" alt="Logótipo MoRENet">
                     <h1>Gestão de Stock</h1>
                     <span class="badge-subtitle">Equipamentos de Rede</span>
                 </div>
-                <button class="btn-sidebar-toggle close-btn" onclick="toggleSidebar()"
+                <button class="btn-sidebar-toggle close-btn" data-action="toggle-sidebar"
                     aria-label="Fechar Menu">&times;</button>
             </div>
             <nav class="main-nav">
@@ -36,23 +31,24 @@
                 <button class="nav-btn" data-tab="tab-movimentacoes">Movimentações</button>
                 <button class="nav-btn" data-tab="tab-relatorios">Relatórios</button>
                 <!-- Este botão só ficará visível para Administradores -->
-                <button class="nav-btn" data-tab="tab-usuarios">Registar Utilizador</button>
+                <button class="nav-btn" id="btn-menu-usuarios" data-tab="tab-usuarios" style="display: none;">Registar Utilizador</button>
                 <!-- Exemplo de Botão no Cabeçalho ou Menu -->
 
             </nav>
         </aside>
 
         <!-- MÁSCARA / OVERLAY PARA MOBILE -->
-        <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+        <div class="sidebar-overlay" data-action="toggle-sidebar"></div>
 
         <!-- ÁREA PRINCIPAL DE CONTEÚDO -->
         <div class="main-wrapper">
 
             <!-- CABEÇALHO PARA DISPOSITIVOS MÓVEIS -->
             <header class="mobile-header">
-                <button class="btn-sidebar-toggle open-btn" onclick="toggleSidebar()"
+                <button class="btn-sidebar-toggle open-btn" data-action="toggle-sidebar"
                     aria-label="Abrir Menu">&#9776;</button>
                 <div class="brand">
+                    <img class="brand-logo" src="MoRENet_Logo.png" alt="Logótipo MoRENet">
                     <h1>Gestão de Stock</h1>
                     <span class="badge-subtitle">Equipamentos de Rede</span>
                 </div>
@@ -70,7 +66,7 @@
                     </div>
 
                     <!-- Botão de Logout Estilizado -->
-                    <button onclick="logout()" class="btn-logout" title="Terminar Sessão">
+                    <button data-action="logout" class="btn-logout" title="Terminar Sessão">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -93,12 +89,12 @@
                             <span class="kpi-value" id="kpi-total-modelos">0</span>
                         </div>
                         <div class="kpi-card">
-                            <span class="kpi-title">Total de Unidades em Stock</span>
-                            <span class="kpi-value" id="kpi-total-unidades">0</span>
-                        </div>
-                        <div class="kpi-card">
                             <span class="kpi-title">Entradas Registadas</span>
                             <span class="kpi-value" id="kpi-total-entradas">0</span>
+                        </div>
+                         <div class="kpi-card">
+                            <span class="kpi-title">Total de Unidades em Stock</span>
+                            <span class="kpi-value" id="kpi-total-unidades">0</span>
                         </div>
                         <div class="kpi-card">
                             <span class="kpi-title">Transferências Efetuadas</span>
@@ -111,12 +107,12 @@
                             <h2>Ações Rápidas</h2>
                         </div>
                         <div class="quick-actions">
-                            <button class="btn btn-primary" onclick="abrirModal('modal-modelo')">+ Novo Modelo</button>
-                            <button class="btn btn-success" onclick="abrirModal('modal-entrada')">+ Registar
+                            <button class="btn btn-primary" data-open-modal="modal-modelo">+ Novo Modelo</button>
+                            <button class="btn btn-success" data-open-modal="modal-entrada">+ Registar
                                 Entrada</button>
-                            <button class="btn btn-secondary" onclick="abrirModal('modal-transferencia')"> Efetuar
+                            <button class="btn btn-secondary" data-open-modal="modal-transferencia"> Efetuar
                                 Transferência</button>
-                            <button class="btn btn-print" onclick="mudarAba('tab-relatorios')"> Emitir Guia /
+                            <button class="btn btn-print" data-action="open-reports"> Emitir Guia /
                                 Relatório</button>
                         </div>
                     </div>
@@ -153,9 +149,9 @@
                                 <p class="section-desc">Consulte e gira o stock de equipamentos em tempo real.</p>
                             </div>
                             <div class="header-actions">
-                                <button class="btn btn-primary btn-sm" onclick="abrirModal('modal-modelo')">+ Novo
+                                <button class="btn btn-primary btn-sm" data-open-modal="modal-modelo">+ Novo
                                     Modelo</button>
-                                <button class="btn btn-success btn-sm" onclick="abrirModal('modal-entrada')">+
+                                <button class="btn btn-success btn-sm" data-open-modal="modal-entrada">+
                                     Entrada</button>
                             </div>
                         </div>
@@ -164,7 +160,7 @@
                         <div class="filter-bar">
                             <input type="text" id="search-inventario"
                                 placeholder="Pesquisar por Marca, Modelo, P/N, S/N ou Localização..."
-                                oninput="filtrarInventario()">
+                                >
                         </div>
 
                         <div class="table-responsive">
@@ -193,10 +189,10 @@
                     <div class="card">
                         <div class="card-header flex-between">
                             <h2>Histórico de Entradas de Stock</h2>
-                            <button class="btn btn-success btn-sm" onclick="abrirModal('modal-entrada')">+ Registar Nova
+                            <button class="btn btn-success btn-sm" data-open-modal="modal-entrada">+ Registar Nova
                                 Entrada</button>
                         </div>
-                        <div class="table-responsive">
+                        <div class="table-responsive historico-entradas-scroll">
                             <table id="tabela-historico">
                                 <thead>
                                     <tr>
@@ -215,9 +211,9 @@
                     </div>
 
                     <div class="card">
-                        <div class="card-header flex-between">
+                        <div class="card-header flex-between ">
                             <h2>Histórico de Transferências</h2>
-                            <button class="btn btn-primary btn-sm" onclick="abrirModal('modal-transferencia')">+
+                            <button class="btn btn-primary btn-sm" data-open-modal="modal-transferencia">+
                                 Transferir Equipamento</button>
                         </div>
                         <div class="table-responsive">
@@ -252,7 +248,7 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="select-tipo-relatorio">Tipo de Documento:</label>
-                                <select id="select-tipo-relatorio" onchange="gerarPreviewRelatorio()">
+                                <select id="select-tipo-relatorio">
                                     <option value="guia-saida">Guia de Saída Oficial (Modelo MCTD / MoRENet)</option>
                                     <option value="inventario">Inventário Completo (Stock Atual)</option>
                                     <option value="entradas">Histórico Completo de Entradas</option>
@@ -263,14 +259,14 @@
 
                             <div class="form-group" id="container-select-item">
                                 <label for="select-item-relatorio" id="label-select-item">Selecione o Registo:</label>
-                                <select id="select-item-relatorio" onchange="gerarPreviewRelatorio()">
+                                <select id="select-item-relatorio">
                                     <!-- Preenchido via JS -->
                                 </select>
                             </div>
                         </div>
 
                         <div class="preview-actions">
-                            <button class="btn btn-print" onclick="executarImpressao()"> Imprimir Documento</button>
+                            <button class="btn btn-print" data-action="print-report"> Imprimir Documento</button>
                         </div>
 
                         <!-- Área de Pré-Visualização -->
@@ -328,7 +324,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Cadastrar Modelo de Equipamento</h3>
-                <button class="btn-close" onclick="fecharModal('modal-modelo')">&times;</button>
+                <button class="btn-close" data-close-modal="modal-modelo">&times;</button>
             </div>
             <form id="form-equipamento">
                 <div class="form-group">
@@ -344,8 +340,7 @@
                     <input type="text" id="part-number" placeholder="Ex: ISR4331/K9" required>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary"
-                        onclick="fecharModal('modal-modelo')">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" data-close-modal="modal-modelo">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Cadastrar Modelo</button>
                 </div>
             </form>
@@ -357,7 +352,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Registo de Entrada de Stock</h3>
-                <button class="btn-close" onclick="fecharModal('modal-entrada')">&times;</button>
+                <button class="btn-close" data-close-modal="modal-entrada">&times;</button>
             </div>
             <form id="form-entrada">
                 <div class="form-group">
@@ -376,8 +371,7 @@
                     <input type="text" id="instituicao" placeholder="Ex: Sede Principal, Armazém A" required>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary"
-                        onclick="fecharModal('modal-entrada')">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" data-close-modal="modal-entrada">Cancelar</button>
                     <button type="submit" class="btn btn-success">Registar Entrada</button>
                 </div>
             </form>
@@ -389,7 +383,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Transferência de Equipamento</h3>
-                <button class="btn-close" onclick="fecharModal('modal-transferencia')">&times;</button>
+                <button class="btn-close" data-close-modal="modal-transferencia">&times;</button>
             </div>
             <form id="form-transferencia">
                 <div class="form-group">
@@ -417,8 +411,7 @@
                         pressionada para selecionar múltiplos números de série.</small>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary"
-                        onclick="fecharModal('modal-transferencia')">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" data-close-modal="modal-transferencia">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Efetuar Transferência</button>
                 </div>
             </form>
@@ -429,13 +422,11 @@
     <div id="modal-editar" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Editar Registo de Equipamento e Stock</h3>
-                <button class="btn-close" onclick="fecharModal('modal-editar')">&times;</button>
+                <h3>Editar modelo e seriais</h3>
+                <button class="btn-close" data-close-modal="modal-editar">&times;</button>
             </div>
             <form id="form-editar-equipamento">
-                <!-- Campos Ocultos para Identificação -->
                 <input type="hidden" id="edit-id">
-                <input type="hidden" id="edit-entrada-id"> <!-- ADICIONADO: Guarda o ID da entrada de stock -->
 
                 <div class="form-group">
                     <label for="edit-marca">Marca:</label>
@@ -450,17 +441,17 @@
                     <input type="text" id="edit-part-number" required>
                 </div>
                 <div class="form-group">
-                    <label for="edit-instituicao">Localização / Instituição:</label>
-                    <input type="text" id="edit-instituicao" placeholder="Ex: Armazém A, Sede">
+                    <label for="edit-instituicao">Instituição / Localização:</label>
+                    <input type="text" id="edit-instituicao" required>
+                    <input type="hidden" id="edit-instituicao-original">
                 </div>
                 <div class="form-group">
-                    <label for="edit-serials">Serial Numbers (S/N):</label>
-                    <textarea id="edit-serials" rows="4"
-                        placeholder="Insira um por linha ou separados por vírgula"></textarea>
+                    <label>Seriais na instituição selecionada:</label>
+                    <p id="edit-local-contexto" class="section-desc"></p>
+                    <div id="edit-seriais-lista" class="serial-manager-list"></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary"
-                        onclick="fecharModal('modal-editar')">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" data-close-modal="modal-editar">Cancelar</button>
                     <button type="submit" class="btn btn-success">Salvar Alterações</button>
                 </div>
             </form>
@@ -468,6 +459,34 @@
     </div>
     <!-- ========================================== -->
     <!-- Container para mensagens Toast -->
+    <!-- MODAL 5: Confirmação Personalizada -->
+    <div id="modal-confirmacao" class="modal">
+        <div class="modal-content" style="max-width: 440px; text-align: center;">
+            <div class="modal-header" style="justify-content: center; border-bottom: none; padding-bottom: 0;">
+                <h3 id="modal-confirm-titulo" style="font-size: 1.25rem; color: #1e293b;">Confirmação</h3>
+            </div>
+            <p id="modal-confirm-mensagem" style="margin: 1.25rem 0 1.5rem 0; color: #64748b; font-size: 0.95rem; line-height: 1.5;"></p>
+            <div class="modal-footer" style="justify-content: center; gap: 0.75rem; border-top: none; padding-top: 0;">
+                <button type="button" class="btn btn-secondary" id="btn-confirm-cancelar">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btn-confirm-confirmar">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-eliminar-seriais" class="modal">
+        <div class="modal-content modal-content-wide">
+            <div class="modal-header">
+                <h3>Eliminar número de série</h3>
+                <button class="btn-close" data-close-modal="modal-eliminar-seriais" aria-label="Fechar">&times;</button>
+            </div>
+            <p id="eliminar-seriais-contexto" class="section-desc"></p>
+            <div id="lista-seriais-eliminar" class="serial-manager-list"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close-modal="modal-eliminar-seriais">Concluir</button>
+            </div>
+        </div>
+    </div>
+
     <div id="toast-container" class="toast-container"></div>
     <script src="script.js"></script>
 

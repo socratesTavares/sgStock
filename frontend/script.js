@@ -2,13 +2,74 @@
 // 1. Arquitectura e Estado Global
 // ==========================================================================
 
-const API_URL = 'http://10.2.0.10/api';
+const API_URL = '/api';
+
+// Função de Sanitização Global contra Stored XSS
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+    }[tag] || tag));
+}
+
+// Diálogo de Confirmação Moderno e Assíncrono (Ação 3)
+function confirmarAcao(mensagem, titulo = 'Confirmar Ação', tipoBtn = 'btn-danger') {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('modal-confirmacao');
+        const tituloEl = document.getElementById('modal-confirm-titulo');
+        const msgEl = document.getElementById('modal-confirm-mensagem');
+        const btnConfirm = document.getElementById('btn-confirm-confirmar');
+        const btnCancel = document.getElementById('btn-confirm-cancelar');
+
+        if (!modal || !btnConfirm || !btnCancel) {
+            resolve(window.confirm(mensagem));
+            return;
+        }
+
+        tituloEl.textContent = titulo;
+        msgEl.textContent = mensagem;
+        btnConfirm.className = `btn ${tipoBtn}`;
+        modal.style.display = 'flex';
+
+        const cleanup = () => {
+            modal.style.display = 'none';
+            btnConfirm.onclick = null;
+            btnCancel.onclick = null;
+        };
+
+        btnConfirm.onclick = () => { cleanup(); resolve(true); };
+        btnCancel.onclick = () => { cleanup(); resolve(false); };
+    });
+}
+
+// Controle de Estado de Carregamento em Botões (Prevenção de Duplo Clique)
+function setButtonLoading(button, isLoading, loadingText = 'A processar...') {
+    if (!button) return;
+    if (isLoading) {
+        button.disabled = true;
+        button.dataset.originalHtml = button.innerHTML;
+        button.innerHTML = `<span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:6px;"></span> ${escapeHTML(loadingText)}`;
+    } else {
+        button.disabled = false;
+        if (button.dataset.originalHtml) {
+            button.innerHTML = button.dataset.originalHtml;
+        }
+    }
+}
+
 
 const state = {
     equipamentos: [],
     historicoEntradas: [],
-    historicoTransferencias: []
+    historicoTransferencias: [],
+    stockConsolidado: []
 };
+
+let contextoEliminarSeriais = null;
 
 const EMBLEMA_MOCAMBIQUE_URL = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTYdSkPUxqArhhHAoPwGlbzbjMxgMa4YPhHniQVCiq-oZ4bLILNCM9iyetq&s=10';
 
@@ -23,13 +84,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (usuario.perfil === 'administrador') {
             const btnUsuarios = document.getElementById('btn-menu-usuarios');
             if (btnUsuarios) {
-                btnUsuarios.style.display = 'inline-block';
+                btnUsuarios.style.display = 'block';
             }
         }
     }
 
     // 2. Configura a navegação e formulários
     configurarNavegacao();
+    configurarAcoesInterface();
     configurarFormularios();
 
     // 3. Carrega os dados da base de dados com o token JWT
@@ -50,7 +112,7 @@ if (formNovoUsuario) {
 
         try {
             // Utiliza a função fetchComAutenticacao definida anteriormente
-            const res = await fetchComAutenticacao('/api/registrar', {
+            const res = await fetchComAutenticacao(`${API_URL}/usuarios`, {
                 method: 'POST',
                 body: JSON.stringify({ nome, email, senha, perfil })
             });
@@ -86,32 +148,45 @@ if (formNovoUsuario) {
 async function carregarDadosDaBD() {
     const alertBox = document.getElementById('api-alert');
 
+    // Exibe estado visual de carregamento nas tabelas principais
+    const corpoStock = document.getElementById('corpo-tabela-stock');
+    const corpoHistorico = document.getElementById('corpo-tabela-historico');
+    const corpoTransf = document.getElementById('corpo-tabela-transferencias');
+
+    if (corpoStock && (!state.equipamentos || state.equipamentos.length === 0)) {
+        corpoStock.innerHTML = '<tr><td colspan="7" class="loading-state"><span class="spinner"></span> A carregar inventário consolidado...</td></tr>';
+    }
+    if (corpoHistorico && (!state.historicoEntradas || state.historicoEntradas.length === 0)) {
+        corpoHistorico.innerHTML = '<tr><td colspan="5" class="loading-state"><span class="spinner"></span> A carregar histórico de entradas...</td></tr>';
+    }
+    if (corpoTransf && (!state.historicoTransferencias || state.historicoTransferencias.length === 0)) {
+        corpoTransf.innerHTML = '<tr><td colspan="6" class="loading-state"><span class="spinner"></span> A carregar transferências...</td></tr>';
+    }
+
     try {
-        // 1. Executa as 3 requisições em paralelo
-        const [resEq, resEnt, resTransf] = await Promise.all([
+        // 1. Executa requisições em paralelo incluindo a view de stock consolidado
+        const [resEq, resEnt, resTransf, resStock] = await Promise.all([
             fetchComAutenticacao(`${API_URL}/equipamentos`),
             fetchComAutenticacao(`${API_URL}/entradas`),
-            fetchComAutenticacao(`${API_URL}/transferencias`)
+            fetchComAutenticacao(`${API_URL}/transferencias`),
+            fetchComAutenticacao(`${API_URL}/stock`)
         ]);
 
-        // 2. PROTEÇÃO: Se qualquer resposta for null (ex: redirecionado para login), interrompe sem dar erro
         if (!resEq || !resEnt || !resTransf) {
             return;
         }
 
-        // 3. Verifica se todas as requisições tiveram status 200-299 OK
         if (!resEq.ok || !resEnt.ok || !resTransf.ok) {
             throw new Error(`Falha nas rotas: Eq(${resEq.status}), Ent(${resEnt.status}), Transf(${resTransf.status})`);
         }
 
-        // 4. Converte todas as respostas JSON em paralelo
-        const [dadosEq, dadosEnt, dadosTransf] = await Promise.all([
+        const [dadosEq, dadosEnt, dadosTransf, dadosStock] = await Promise.all([
             resEq.json(),
             resEnt.json(),
-            resTransf.json()
+            resTransf.json(),
+            resStock && resStock.ok ? resStock.json() : Promise.resolve([])
         ]);
 
-        // 5. Atualiza o state com verificações de segurança
         state.equipamentos = Array.isArray(dadosEq) 
             ? dadosEq.map(eq => ({
                 id: eq.id,
@@ -123,11 +198,10 @@ async function carregarDadosDaBD() {
 
         state.historicoEntradas = Array.isArray(dadosEnt) ? dadosEnt : [];
         state.historicoTransferencias = Array.isArray(dadosTransf) ? dadosTransf : [];
+        state.stockConsolidado = Array.isArray(dadosStock) ? dadosStock : [];
 
-        // 6. Esconde o alerta de erro caso a ligação tenha tido sucesso
         if (alertBox) alertBox.style.display = 'none';
 
-        // 7. Atualiza a Interface do Utilizador
         atualizarKPIs();
         atualizarSelects();
         atualizarTabelaStock();
@@ -159,7 +233,7 @@ async function fetchComAutenticacao(url, options = {}) {
     console.log(`Requisição para ${url} retornou status ${res.status}`);
 
     // Se o token expirar ou for inválido, força o logout
-    if (res.status === 401 || res.status === 403) {
+    if (res.status === 401) {
         logout();
         return null;
     }
@@ -209,6 +283,31 @@ function configurarNavegacao() {
             fecharSidebarMobile();
         });
     });
+}
+
+function configurarAcoesInterface() {
+    document.addEventListener('click', (event) => {
+        const target = event.target.closest('[data-action], [data-open-modal], [data-close-modal]');
+        if (!target) return;
+
+        if (target.dataset.openModal) {
+            abrirModal(target.dataset.openModal);
+        } else if (target.dataset.closeModal) {
+            fecharModal(target.dataset.closeModal);
+        } else if (target.dataset.action === 'toggle-sidebar') {
+            toggleSidebar();
+        } else if (target.dataset.action === 'logout') {
+            logout();
+        } else if (target.dataset.action === 'open-reports') {
+            mudarAba('tab-relatorios');
+        } else if (target.dataset.action === 'print-report') {
+            executarImpressao();
+        }
+    });
+
+    document.getElementById('search-inventario')?.addEventListener('input', filtrarInventario);
+    document.getElementById('select-tipo-relatorio')?.addEventListener('change', gerarPreviewRelatorio);
+    document.getElementById('select-item-relatorio')?.addEventListener('change', gerarPreviewRelatorio);
 }
 
 function mudarAba(tabId) {
@@ -264,7 +363,6 @@ function preencherSelectsTransferencia() {
 
     if (!selectEq || !selectOrigem) return;
 
-    // 1. Preenche os equipamentos
     selectEq.innerHTML = '<option value="">Selecione um equipamento...</option>';
     if (Array.isArray(state.equipamentos)) {
         state.equipamentos.forEach(eq => {
@@ -275,11 +373,9 @@ function preencherSelectsTransferencia() {
         });
     }
 
-    // 2. Preenche as origens usando state.historicoEntradas
     selectOrigem.innerHTML = '<option value="">Selecione a origem...</option>';
-    const entradas = Array.isArray(state.historicoEntradas) ? state.historicoEntradas : [];
-    
-    const locaisUnicos = [...new Set(entradas.map(e => e.instituicao).filter(Boolean))];
+    const stock = obterStockAtual();
+    const locaisUnicos = [...new Set(stock.filter(s => s.total > 0).map(s => s.instituicao).filter(Boolean))];
     
     locaisUnicos.forEach(local => {
         const opt = document.createElement('option');
@@ -309,67 +405,76 @@ window.onclick = function (e) {
 // ==========================================================================
 
 function obterStockAtual() {
-    const stockMap = [];
+    // 1. Prioriza dados consolidados diretamente do PostgreSQL
+    if (Array.isArray(state.stockConsolidado) && state.stockConsolidado.length > 0) {
+        return state.stockConsolidado.map(item => ({
+            entradaId: '',
+            equipamentoId: item.equipamentoId,
+            equipamentoNome: `${item.marca} ${item.modelo} (${item.partNumber})`,
+            instituicao: item.instituicao,
+            serials: Array.isArray(item.serials) ? item.serials : [],
+            total: Number(item.total) || 0
+        }));
+    }
 
-    // Mapeia todas as entradas registadas (histórico imutável)
-    (state.historicoEntradas || []).forEach(entrada => {
-        const eqId = String(entrada.equipamento_id || entrada.equipamentoId || '');
-        const eqNome = String(entrada.equipamento_nome || entrada.equipamentoNome || '').trim().toLowerCase();
+    // 2. Algoritmo de Fallback robusto no cliente: Rastreia a última localização de cada número de série
+    const serialMap = new Map();
 
-        // Converte os serials da entrada para array limpo
-        const serialsEntrada = Array.isArray(entrada.serials)
-            ? [...entrada.serials]
-            : (typeof entrada.serials === 'string' ? entrada.serials.split(',').map(s => s.trim()) : []);
+    (state.historicoEntradas || []).forEach(ent => {
+        const eqId = String(ent.equipamentoId || ent.equipamento_id || '');
+        const eqNome = String(ent.equipamentoNome || ent.equipamento_nome || '');
+        const inst = String(ent.instituicao || '').trim();
+        const serials = Array.isArray(ent.serials) ? ent.serials : [];
+        const ordem = Number(ent.id) || 0;
 
-        // 1. Encontrar transferências associadas a este equipamento E que saíram desta instituição de origem
-        const transferenciasDestaOrigem = (state.historicoTransferencias || []).filter(transf => {
-            const tEqId = String(transf.equipamento_id || transf.equipamentoId || '');
-            const tEqNome = String(transf.equipamento_nome || transf.equipamentoNome || '').trim().toLowerCase();
-            
-            const mesmoEquipamento = (eqId && tEqId && eqId === tEqId) || (eqNome && tEqNome && eqNome === tEqNome);
-            const mesmaOrigem = String(transf.origem || '').trim().toLowerCase() === String(entrada.instituicao || '').trim().toLowerCase();
-
-            return mesmoEquipamento && mesmaOrigem;
+        serials.forEach(sn => {
+            const cleanSn = String(sn).trim();
+            if (!cleanSn) return;
+            const key = cleanSn.toLowerCase();
+            if (!serialMap.has(key) || serialMap.get(key).ordem < ordem) {
+                serialMap.set(key, { equipamentoId: eqId, equipamentoNome: eqNome, instituicao: inst, serial: cleanSn, ordem });
+            }
         });
-
-        // 2. Calcular o total transferido e acumular serials que saíram
-        let quantidadeTransferida = 0;
-        const serialsTransferidos = [];
-
-        transferenciasDestaOrigem.forEach(transf => {
-            quantidadeTransferida += Number(transf.quantidade) || 0;
-
-            const serialsTransf = Array.isArray(transf.serials)
-                ? transf.serials
-                : (typeof transf.serials === 'string' ? transf.serials.split(',').map(s => s.trim()) : []);
-
-            serialsTransferidos.push(...serialsTransf);
-        });
-
-        // 3. Calcular a quantidade líquida disponível para este lote
-        const totalEntrada = Number(entrada.quantidade) || serialsEntrada.length || 1;
-        const totalDisponivel = Math.max(0, totalEntrada - quantidadeTransferida);
-
-        // 4. Filtrar os números de série disponíveis (excluindo os transferidos)
-        const serialsDisponiveis = serialsEntrada.filter(s => !serialsTransferidos.includes(s));
-
-        // 5. A localização mantém-se a instituição original da entrada no inventário
-        const instituicaoAtual = entrada.instituicao || 'N/A';
-
-        // Apenas adiciona ao mapa de stock se ainda houver unidades disponíveis (> 0)
-        if (totalDisponivel > 0) {
-            stockMap.push({
-                entradaId: entrada.id,
-                equipamentoId: entrada.equipamento_id || entrada.equipamentoId,
-                equipamentoNome: entrada.equipamento_nome || entrada.equipamentoNome,
-                instituicao: instituicaoAtual,
-                serials: serialsDisponiveis,
-                total: totalDisponivel
-            });
-        }
     });
 
-    return stockMap;
+    (state.historicoTransferencias || []).forEach(trf => {
+        if (trf.cancelado) return;
+        const eqId = String(trf.equipamentoId || trf.equipamento_id || '');
+        const eqNome = String(trf.equipamentoNome || trf.equipamento_nome || '');
+        const dest = String(trf.destino || '').trim();
+        const serials = Array.isArray(trf.serials) ? trf.serials : [];
+        const ordem = Number(trf.id) || 0;
+
+        serials.forEach(sn => {
+            const cleanSn = String(sn).trim();
+            if (!cleanSn) return;
+            const key = cleanSn.toLowerCase();
+            if (!serialMap.has(key) || serialMap.get(key).ordem < ordem) {
+                serialMap.set(key, { equipamentoId: eqId, equipamentoNome: eqNome, instituicao: dest, serial: cleanSn, ordem });
+            }
+        });
+    });
+
+    // Agrupa por equipamento e localização
+    const agrupado = new Map();
+    for (const item of serialMap.values()) {
+        const groupKey = `${item.equipamentoId}|${item.instituicao.toLowerCase()}`;
+        if (!agrupado.has(groupKey)) {
+            agrupado.set(groupKey, {
+                entradaId: '',
+                equipamentoId: item.equipamentoId,
+                equipamentoNome: item.equipamentoNome,
+                instituicao: item.instituicao,
+                serials: [],
+                total: 0
+            });
+        }
+        const g = agrupado.get(groupKey);
+        g.serials.push(item.serial);
+        g.total++;
+    }
+
+    return Array.from(agrupado.values());
 }
 
 // ==========================================================================
@@ -379,12 +484,49 @@ function obterStockAtual() {
 function atualizarKPIs() {
     document.getElementById('kpi-total-modelos').textContent = state.equipamentos.length;
 
-    const stock = obterStockAtual();
-    const totalUnidades = stock.reduce((acc, item) => acc + item.total, 0);
-    document.getElementById('kpi-total-unidades').textContent = totalUnidades;
+    document.getElementById('kpi-total-unidades').textContent = calcularTotalUnidadesEmStock();
 
     document.getElementById('kpi-total-entradas').textContent = state.historicoEntradas.length;
     document.getElementById('kpi-total-transferencias').textContent = state.historicoTransferencias.length;
+}
+
+function obterSeriaisTransferidos() {
+    const serialsTransferidos = new Set();
+
+    (state.historicoTransferencias || []).forEach(transferencia => {
+        if (transferencia.cancelado) return;
+        (Array.isArray(transferencia.serials) ? transferencia.serials : []).forEach(serial => {
+            const serialNormalizado = String(serial).trim().toLowerCase();
+            if (serialNormalizado) serialsTransferidos.add(serialNormalizado);
+        });
+    });
+
+    return serialsTransferidos;
+}
+
+function calcularTotalUnidadesEmStock() {
+    const serialsEntradas = new Set();
+
+    (state.historicoEntradas || []).forEach(entrada => {
+        (Array.isArray(entrada.serials) ? entrada.serials : []).forEach(serial => {
+            const serialNormalizado = String(serial).trim().toLowerCase();
+            if (serialNormalizado) serialsEntradas.add(serialNormalizado);
+        });
+    });
+
+    const serialsTransferidos = obterSeriaisTransferidos();
+    return [...serialsEntradas].filter(serial => !serialsTransferidos.has(serial)).length;
+}
+
+function obterStockNaoTransferido() {
+    const serialsTransferidos = obterSeriaisTransferidos();
+
+    return obterStockAtual().map(item => {
+        const serials = (Array.isArray(item.serials) ? item.serials : [])
+            .filter(serial => !serialsTransferidos.has(String(serial).trim().toLowerCase()));
+
+        return { ...item, serials, total: serials.length };
+    }).filter(item => item.total > 0);
 }
 
 function atualizarSelects() {
@@ -406,6 +548,7 @@ function atualizarSelects() {
 
 function atualizarTabelaStock() {
     const corpo = document.getElementById('corpo-tabela-stock');
+    if (!corpo) return;
     corpo.innerHTML = '';
 
     if (state.equipamentos.length === 0) {
@@ -413,49 +556,39 @@ function atualizarTabelaStock() {
         return;
     }
 
-    const stockCalculado = obterStockAtual();
+    const stockCalculado = obterStockNaoTransferido();
+    if (stockCalculado.length === 0) {
+        corpo.innerHTML = '<tr><td colspan="7" style="text-align:center;">Nenhum equipamento disponível no stock atual.</td></tr>';
+        return;
+    }
 
     state.equipamentos.forEach(eq => {
-        const registos = stockCalculado.filter(s => s.equipamentoId === eq.id && s.total > 0);
-
-        if (registos.length === 0) {
-            // Modelo sem unidades em stock
+        const registos = stockCalculado.filter(s => String(s.equipamentoId) === String(eq.id));
+        registos.forEach(item => {
             const tr = document.createElement('tr');
+            const serialsHtml = item.serials
+                .map(serial => `<div class="stock-serial">${escapeHTML(serial)}</div>`)
+                .join('');
             tr.innerHTML = `
-                <td>${eq.marca}</td>
-                <td>${eq.modelo}</td>
-                <td>${eq.partNumber}</td>
-                <td>-</td>
-                <td><em>Sem stock disponível</em></td>
-                <td><strong>0</strong></td>
+                <td>${escapeHTML(eq.marca)}</td>
+                <td>${escapeHTML(eq.modelo)}</td>
+                <td>${escapeHTML(eq.partNumber)}</td>
+                <td><div class="stock-serial-list">${serialsHtml}</div></td>
+                <td>${escapeHTML(item.instituicao)}</td>
+                <td><strong>${Number(item.total) || 0}</strong></td>
                 <td class="text-right">
-                    <button class="btn btn-sm btn-secondary" onclick="abrirModalEditar('${eq.id}', '', '', [])">Editar Modelo</button>
-                    <button class="btn btn-sm btn-danger" onclick="eliminarModeloGlobal('${eq.id}', '${eq.marca} ${eq.modelo}')">Apagar Modelo</button>
+                    <button class="btn btn-sm btn-secondary btn-editar-linha">Editar</button>
+                    <button class="btn btn-sm btn-danger btn-eliminar-linha">Eliminar</button>
                 </td>
             `;
-            corpo.appendChild(tr);
-        } else {
-            // Unidades com entrada registada
-            registos.forEach(item => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${eq.marca}</td>
-                    <td>${eq.modelo}</td>
-                    <td>${eq.partNumber}</td>
-                    <td><small>${item.serials && item.serials.length > 0 ? item.serials.join(', ') : 'N/A'}</small></td>
-                    <td>${item.instituicao}</td>
-                    <td><strong>${item.total}</strong></td>
-                    <td class="text-right">
-                        <button class="btn btn-sm btn-secondary" 
-        onclick="abrirModalEditar('${eq.id}', '${item.entradaId}', '${encodeURIComponent(item.instituicao)}', JSON.parse(decodeURIComponent('${encodeURIComponent(JSON.stringify(item.serials))}')))">
-    Editar
-</button>
-                        <button class="btn btn-sm btn-danger" onclick="eliminarRegistoLinha('${item.entradaId}', '${eq.marca} ${eq.modelo}', '${item.instituicao}')">Eliminar</button>
-                    </td>
-                `;
-                corpo.appendChild(tr);
+            tr.querySelector('.btn-editar-linha').addEventListener('click', () => {
+                abrirModalEditar(eq.id, item.instituicao, item.serials || []);
             });
-        }
+            tr.querySelector('.btn-eliminar-linha').addEventListener('click', () => {
+                abrirModalEliminarSeriais(eq.id, `${eq.marca} ${eq.modelo}`, item.instituicao, item.serials || []);
+            });
+            corpo.appendChild(tr);
+        });
     });
 }
 
@@ -479,20 +612,23 @@ function atualizarTabelaHistorico() {
         return;
     }
 
-    [...state.historicoEntradas].reverse().forEach(e => {
+    state.historicoEntradas.forEach(e => {
         const serialsTexto = e.serials ? (Array.isArray(e.serials) ? e.serials.join(', ') : e.serials) : 'N/A';
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${e.dataHora}</td>
-            <td>${e.equipamentoNome}<br><small style="color:var(--text-muted)">S/N: ${serialsTexto}</small></td>
-            <td>+${e.quantidade}</td>
-            <td>${e.instituicao}</td>
+            <td>${escapeHTML(e.dataHora)}</td>
+            <td><span class="historico-equipamento">${escapeHTML(e.equipamentoNome)}</span><small class="historico-serials" style="color:var(--text-muted)">S/N: ${escapeHTML(serialsTexto)}</small></td>
+            <td>+${Number(e.quantidade) || 0}</td>
+            <td>${escapeHTML(e.instituicao)}</td>
             <td style="text-align: center;">
-                <button class="btn-danger btn-sm" onclick="apagarEntrada('${e.id}')" title="Eliminar entrada">
-                    <i class="fas fa-trash"></i> Eliminar
+                <button class="btn-danger btn-sm btn-apagar-entrada" title="Eliminar entrada">
+                    Eliminar
                 </button>
             </td>
         `;
+        tr.querySelector('.btn-apagar-entrada').addEventListener('click', () => {
+            apagarEntrada(e.id);
+        });
         corpo.appendChild(tr);
     });
 }
@@ -511,23 +647,27 @@ function atualizarTabelaTransferencias() {
         const serialsTexto = t.serials ? (Array.isArray(t.serials) ? t.serials.join(', ') : t.serials) : 'N/A';
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${t.dataHora}</td>
-            <td>${t.equipamentoNome}<br><small style="color:var(--text-muted)">S/N: ${serialsTexto}</small></td>
-            <td>${t.quantidade}</td>
-            <td>${t.origem}</td>
-            <td>${t.destino}</td>
+            <td>${escapeHTML(t.dataHora)}</td>
+            <td>${escapeHTML(t.equipamentoNome)}<br><small style="color:var(--text-muted)">S/N: ${escapeHTML(serialsTexto)}</small></td>
+            <td>${Number(t.quantidade) || 0}</td>
+            <td>${escapeHTML(t.origem)}</td>
+            <td>${escapeHTML(t.destino)}</td>
             <td style="text-align: center;">
-                <button class="btn-danger btn-sm" onclick="apagarTransferencia('${t.id}')" title="Eliminar transferência">
-                    <i class="fas fa-trash"></i> Eliminar
+                <button class="btn-danger btn-sm btn-apagar-transf" title="Eliminar transferência">
+                    Eliminar
                 </button>
             </td>
         `;
+        tr.querySelector('.btn-apagar-transf').addEventListener('click', () => {
+            apagarTransferencia(t.id);
+        });
         corpo.appendChild(tr);
     });
 }
 
 function atualizarResumoMovimentacoes() {
     const corpo = document.getElementById('corpo-tabela-resumo-movimentacoes');
+    if (!corpo) return;
     corpo.innerHTML = '';
 
     const ultimasEntradas = state.historicoEntradas.map(e => ({ ...e, tipo: 'Entrada' }));
@@ -542,12 +682,14 @@ function atualizarResumoMovimentacoes() {
 
     todas.forEach(m => {
         const tr = document.createElement('tr');
+        const tipoBadgeClass = m.tipo === 'Entrada' ? 'btn-success' : 'btn-primary';
+        const local = m.instituicao || m.destino || 'N/A';
         tr.innerHTML = `
-            <td>${m.dataHora}</td>
-            <td><span class="btn-sm ${m.tipo === 'Entrada' ? 'btn-success' : 'btn-primary'}">${m.tipo}</span></td>
-            <td>${m.equipamentoNome}</td>
-            <td>${m.quantidade}</td>
-            <td>${m.instituicao || m.destino}</td>
+            <td>${escapeHTML(m.dataHora)}</td>
+            <td><span class="btn-sm ${tipoBadgeClass}">${escapeHTML(m.tipo)}</span></td>
+            <td>${escapeHTML(m.equipamentoNome)}</td>
+            <td>${Number(m.quantidade) || 0}</td>
+            <td>${escapeHTML(local)}</td>
         `;
         corpo.appendChild(tr);
     });
@@ -558,20 +700,27 @@ function atualizarResumoMovimentacoes() {
 // ==========================================================================
 
 function configurarFormularios() {
-    // Registar Modelo
-    document.getElementById('form-equipamento').addEventListener('submit', async (e) => {
+    // 1. Registar Modelo
+    document.getElementById('form-equipamento')?.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
         const marca = document.getElementById('marca').value.trim();
         const modelo = document.getElementById('modelo').value.trim();
         const partNumber = document.getElementById('part-number').value.trim();
 
+        if (!marca || !modelo || !partNumber) {
+            mostrarNotificacao('Por favor, preencha todos os campos do modelo.', 'error');
+            return;
+        }
+
         if (state.equipamentos.some(eq => eq.partNumber.toLowerCase() === partNumber.toLowerCase())) {
-            mostrarNotificacao('Atenção: Já existe um modelo cadastrado com este Part Number!');
+            mostrarNotificacao('Atenção: Já existe um modelo cadastrado com este Part Number!', 'error');
             return;
         }
 
         const novoEquipamento = { id: Date.now().toString(), marca, modelo, partNumber };
 
+        setButtonLoading(submitBtn, true, 'A registar modelo...');
         try {
             const res = await fetchComAutenticacao(`${API_URL}/equipamentos`, {
                 method: 'POST',
@@ -579,29 +728,53 @@ function configurarFormularios() {
                 body: JSON.stringify(novoEquipamento)
             });
 
+            const data = await res.json().catch(() => ({}));
             if (res.ok) {
                 fecharModal('modal-modelo');
                 await carregarDadosDaBD();
-                mostrarNotificacao('Modelo cadastrado com sucesso!');
+                mostrarNotificacao('Modelo cadastrado com sucesso!', 'success');
+            } else {
+                mostrarNotificacao(data.error || 'Erro ao cadastrar modelo.', 'error');
             }
         } catch (error) {
-            mostrarNotificacao('Erro ao comunicar com o servidor.');
+            console.error('Erro na submissão do modelo:', error);
+            mostrarNotificacao('Erro de rede ao comunicar com o servidor.', 'error');
+        } finally {
+            setButtonLoading(submitBtn, false);
         }
     });
-    document.getElementById('select-equipamento-transf').addEventListener('change', atualizarSeriaisDisponiveisTransf);
-    document.getElementById('origem-transf').addEventListener('change', atualizarSeriaisDisponiveisTransf);
 
-    // Registar Entrada
-    document.getElementById('form-entrada').addEventListener('submit', async (e) => {
+    document.getElementById('select-equipamento-transf')?.addEventListener('change', atualizarSeriaisDisponiveisTransf);
+    document.getElementById('origem-transf')?.addEventListener('change', atualizarSeriaisDisponiveisTransf);
+
+    // 2. Registar Entrada
+    document.getElementById('form-entrada')?.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
         const equipamentoId = document.getElementById('select-equipamento').value;
         const rawSerials = document.getElementById('serial-numbers').value;
         const instituicao = document.getElementById('instituicao').value.trim();
 
-        const listaSerials = rawSerials.split(/[\n,]+/).map(s => s.trim()).filter(s => s.length > 0);
-        const equipamento = state.equipamentos.find(eq => eq.id === equipamentoId);
+        const listaSerialsBruta = rawSerials.split(/[\n,]+/).map(s => s.trim()).filter(s => s.length > 0);
+        // Remove duplicados acidentais no mesmo textarea
+        const listaSerials = [...new Set(listaSerialsBruta)];
 
-        if (!equipamento || listaSerials.length === 0 || !instituicao) return;
+        const equipamento = state.equipamentos.find(eq => String(eq.id) === String(equipamentoId));
+
+        if (!equipamento) {
+            mostrarNotificacao('Por favor, selecione um modelo de equipamento.', 'error');
+            return;
+        }
+
+        if (listaSerials.length === 0) {
+            mostrarNotificacao('Por favor, informe pelo menos um número de série válido.', 'error');
+            return;
+        }
+
+        if (!instituicao) {
+            mostrarNotificacao('Por favor, informe a instituição ou armazém de destino da entrada.', 'error');
+            return;
+        }
 
         const novaEntrada = {
             id: Date.now().toString(),
@@ -613,6 +786,7 @@ function configurarFormularios() {
             dataHora: new Date().toLocaleString('pt-PT')
         };
 
+        setButtonLoading(submitBtn, true, 'A registar entrada...');
         try {
             const res = await fetchComAutenticacao(`${API_URL}/entradas`, {
                 method: 'POST',
@@ -620,137 +794,141 @@ function configurarFormularios() {
                 body: JSON.stringify(novaEntrada)
             });
 
+            const data = await res.json().catch(() => ({}));
             if (res.ok) {
                 fecharModal('modal-entrada');
                 await carregarDadosDaBD();
-                mostrarNotificacao('Entrada registada com sucesso!');
+                mostrarNotificacao('Entrada de stock registada com sucesso!', 'success');
+            } else {
+                mostrarNotificacao(data.error || 'Erro ao guardar entrada.', 'error');
             }
         } catch (error) {
-            mostrarNotificacao('Erro ao guardar entrada.');
+            console.error('Erro ao registar entrada:', error);
+            mostrarNotificacao('Erro de comunicação ao registar entrada.', 'error');
+        } finally {
+            setButtonLoading(submitBtn, false);
         }
     });
 
-    // Dynamic Select de Origem para Transferência
-    document.getElementById('select-equipamento-transf').addEventListener('change', (e) => {
+    // 3. Dynamic Select de Origem para Transferência
+    document.getElementById('select-equipamento-transf')?.addEventListener('change', (e) => {
         const eqId = e.target.value;
         const origemSelect = document.getElementById('origem-transf');
         origemSelect.innerHTML = '<option value="">-- Selecione a origem --</option>';
 
         if (!eqId) return;
 
-        const stock = obterStockAtual().filter(item => item.equipamentoId === eqId && item.total > 0);
+        const stock = obterStockAtual().filter(item => String(item.equipamentoId) === String(eqId) && item.total > 0);
         stock.forEach(item => {
             const opt = document.createElement('option');
             opt.value = item.instituicao;
             opt.textContent = `${item.instituicao} (${item.total} disponíveis)`;
             origemSelect.appendChild(opt);
         });
+        atualizarSeriaisDisponiveisTransf();
     });
 
-    // Transferência
-    document.getElementById('form-transferencia').addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const equipamentoId = document.getElementById('select-equipamento-transf').value;
-    const origem = document.getElementById('origem-transf').value;
-    const destino = document.getElementById('destino-transf').value.trim();
-    const selectSerials = document.getElementById('serials-transf');
-
-    // Captura apenas os elementos selecionados no dropdown múltiplo
-    const listaSerials = Array.from(selectSerials.selectedOptions).map(opt => opt.value);
-
-    if (listaSerials.length === 0) {
-        mostrarNotificacao('Por favor, selecione pelo menos um número de série.', 'error');
-        return;
-    }
-
-    const equipamento = state.equipamentos.find(eq => eq.id.toString() === equipamentoId.toString());
-
-    if (!equipamento) {
-        mostrarNotificacao('Equipamento não encontrado.', 'error');
-        return;
-    }
-
-    const novaTransferencia = {
-        id: Date.now().toString(),
-        equipamentoId: equipamento.id,
-        equipamentoNome: `${equipamento.marca} ${equipamento.modelo} (${equipamento.partNumber})`,
-        quantidade: listaSerials.length,
-        serials: listaSerials,
-        origem,
-        destino,
-        dataHora: new Date().toLocaleString('pt-PT')
-    };
-
-    try {
-        const res = await fetchComAutenticacao(`${API_URL}/transferencias`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(novaTransferencia)
-        });
-
-        if (res.ok) {
-            fecharModal('modal-transferencia');
-            await carregarDadosDaBD();
-            mostrarNotificacao('Transferência efetuada com sucesso!', 'success');
-            
-        } else {
-            mostrarNotificacao('Erro ao registar transferência no servidor.', 'error');
-        }
-    } catch (error) {
-        console.error('Erro na transferência:', error);
-        mostrarNotificacao('Erro ao registar transferência.', 'error');
-    }
-});
-
-    // Editar Equipamento
-    document.getElementById('form-editar-equipamento').addEventListener('submit', async (e) => {
+    // 4. Efetuar Transferência com Validação Client-Side e Anti-Double Submit
+    document.getElementById('form-transferencia')?.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
 
-        console.log('Submetendo edição de equipamento...');
+        const equipamentoId = document.getElementById('select-equipamento-transf').value;
+        const origem = document.getElementById('origem-transf').value;
+        const destino = document.getElementById('destino-transf').value.trim();
+        const selectSerials = document.getElementById('serials-transf');
+
+        const listaSerials = Array.from(selectSerials.selectedOptions).map(opt => opt.value);
+
+        if (!equipamentoId) {
+            mostrarNotificacao('Selecione um modelo de equipamento.', 'error');
+            return;
+        }
+
+        if (!origem) {
+            mostrarNotificacao('Selecione a origem do equipamento.', 'error');
+            return;
+        }
+
+        if (!destino) {
+            mostrarNotificacao('Indique o destino da transferência.', 'error');
+            return;
+        }
+
+        if (origem.toLowerCase() === destino.toLowerCase()) {
+            mostrarNotificacao('A origem e o destino não podem ser a mesma instituição.', 'error');
+            return;
+        }
+
+        if (listaSerials.length === 0) {
+            mostrarNotificacao('Selecione pelo menos um número de série para transferir.', 'error');
+            return;
+        }
+
+        const equipamento = state.equipamentos.find(eq => String(eq.id) === String(equipamentoId));
+        if (!equipamento) {
+            mostrarNotificacao('Equipamento não encontrado.', 'error');
+            return;
+        }
+
+        const novaTransferencia = {
+            id: Date.now().toString(),
+            equipamentoId: equipamento.id,
+            equipamentoNome: `${equipamento.marca} ${equipamento.modelo} (${equipamento.partNumber})`,
+            quantidade: listaSerials.length,
+            serials: listaSerials,
+            origem,
+            destino,
+            dataHora: new Date().toLocaleString('pt-PT')
+        };
+
+        setButtonLoading(submitBtn, true, 'A transferir...');
+        try {
+            const res = await fetchComAutenticacao(`${API_URL}/transferencias`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(novaTransferencia)
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+                fecharModal('modal-transferencia');
+                await carregarDadosDaBD();
+                mostrarNotificacao('Transferência efetuada com sucesso!', 'success');
+            } else {
+                mostrarNotificacao(data.error || 'Erro ao registar transferência.', 'error');
+            }
+        } catch (error) {
+            console.error('Erro na transferência:', error);
+            mostrarNotificacao('Erro de comunicação ao registar transferência.', 'error');
+        } finally {
+            setButtonLoading(submitBtn, false);
+        }
+    });
+
+    // 5. Editar Equipamento
+    document.getElementById('form-editar-equipamento')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
 
         const equipamentoId = document.getElementById('edit-id').value;
-        const entradaId = document.getElementById('edit-entrada-id').value;
-
         const marca = document.getElementById('edit-marca').value.trim();
         const modelo = document.getElementById('edit-modelo').value.trim();
         const partNumber = document.getElementById('edit-part-number').value.trim();
+        const novaInstituicao = document.getElementById('edit-instituicao').value.trim();
+        const antigaInstituicao = document.getElementById('edit-instituicao-original').value.trim();
 
-        const instituicao = document.getElementById('edit-instituicao').value.trim();
-        const rawSerials = document.getElementById('edit-serials').value;
-        const serials = rawSerials.split(/[\n,]+/).map(sn => sn.trim()).filter(sn => sn.length > 0);
-
+        setButtonLoading(submitBtn, true, 'A guardar alterações...');
         try {
-            // 1. Atualiza as informações do Modelo (Marca, Modelo, Part Number)
             const resModelo = await fetchComAutenticacao(`${API_URL}/equipamentos/${equipamentoId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ marca, modelo, partNumber })
+                body: JSON.stringify({ marca, modelo, partNumber, novaInstituicao, antigaInstituicao })
             });
 
-            if (!resModelo.ok) throw new Error('Erro ao atualizar modelo de equipamento');
-
-            // 2. Se o item possui um registo de entrada/stock, atualiza o Local e os Seriais
-            if (entradaId) {
-                console.log(`Enviando requisição PUT para: ${API_URL}/entradas/${entradaId}`);
-
-                const resEntrada = await fetchComAutenticacao(`${API_URL}/entradas/${entradaId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        equipamentoId,
-                        equipamentoNome: `${marca} ${modelo} (${partNumber})`,
-                        instituicao,
-                        serials,
-                        quantidade: serials.length
-                    })
-                });
-
-                if (!resEntrada.ok) {
-                    const detalheServidor = await resEntrada.text();
-                    console.error('Resposta de erro do servidor:', resEntrada.status, detalheServidor);
-                    throw new Error(`Erro ${resEntrada.status} no servidor: ${detalheServidor}`);
-                }
+            if (!resModelo.ok) {
+                const erroData = await resModelo.json().catch(() => ({}));
+                throw new Error(erroData.error || 'Erro ao atualizar modelo de equipamento');
             }
 
             fecharModal('modal-editar');
@@ -758,35 +936,35 @@ function configurarFormularios() {
             mostrarNotificacao('Inventário atualizado com sucesso!', 'success');
         } catch (error) {
             console.error('Erro na edição:', error);
-            console.log('Detalhes do erro:', error.message);
-            mostrarNotificacao('Não foi possível salvar as alterações.', 'error');
+            mostrarNotificacao(error.message || 'Não foi possível salvar as alterações.', 'error');
+        } finally {
+            setButtonLoading(submitBtn, false);
         }
     });
 }
 
-function abrirModalEditar(equipamentoId, entradaId = '', instituicao = '', serials = []) {
-    console.log('Abrindo modal de edição para equipamentoId:', equipamentoId, 'entradaId:', entradaId, 'instituicao:', instituicao, 'serials:', serials);
+function abrirModalEditar(equipamentoId, instituicao, serials = []) {
     const eq = state.equipamentos.find(item => item.id === equipamentoId);
     if (!eq) return;
 
-    // Preenche IDs
     document.getElementById('edit-id').value = eq.id;
-    document.getElementById('edit-entrada-id').value = entradaId;
-
-    // Preenche dados do modelo
     document.getElementById('edit-marca').value = eq.marca;
     document.getElementById('edit-modelo').value = eq.modelo;
     document.getElementById('edit-part-number').value = eq.partNumber;
-
-    // Preenche dados do registo de stock
     document.getElementById('edit-instituicao').value = instituicao;
-    document.getElementById('edit-serials').value = Array.isArray(serials) ? serials.join('\n') : serials;
+    document.getElementById('edit-instituicao-original').value = instituicao;
+    document.getElementById('edit-local-contexto').textContent = `Seriais atualmente em ${instituicao}`;
+    renderizarSeriaisEditaveis(equipamentoId, instituicao, serials);
 
     abrirModal('modal-editar');
 }
 
 async function apagarEntrada(id) {
-    if (!confirm('Deseja realmente apagar esta entrada?')) return;
+    const confirmado = await confirmarAcao(
+        'Tem a certeza de que deseja eliminar este registo de entrada? Esta ação é irreversível.',
+        'Eliminar Registo de Entrada'
+    );
+    if (!confirmado) return;
 
     try {
         const res = await fetchComAutenticacao(`${API_URL}/entradas/${id}`, {
@@ -796,51 +974,185 @@ async function apagarEntrada(id) {
         if (!res) return;
 
         if (res.ok) {
-            // 1. Remove o item diretamente do state local
             state.historicoEntradas = state.historicoEntradas.filter(item => item.id !== id);
-
-            // 2. Atualiza a tabela e as estatísticas no ecrã imediatamente
             atualizarTabelaHistorico();
             atualizarKPIs();
-
-            // 3. (Opcional) Recarrega os dados do servidor para sincronização completa
             await carregarDadosDaBD();
-
-            mostrarNotificacao('Registo eliminado com sucesso!', 'sucesso');
+            mostrarNotificacao('Registo de entrada eliminado com sucesso!', 'success');
         } else {
-            const erro = await res.json();
-            mostrarNotificacao(erro.error || 'Erro ao apagar registo.', 'erro');
+            const erro = await res.json().catch(() => ({}));
+            mostrarNotificacao(erro.error || 'Erro ao eliminar registo.', 'error');
         }
     } catch (err) {
         console.error('Erro ao apagar registo:', err);
+        mostrarNotificacao('Erro de comunicação ao tentar apagar registo.', 'error');
     }
 }
 
-async function eliminarRegistoLinha(entradaId, nomeModelo, instituicao) {
-    if (!confirm(`Deseja remover as unidades de "${nomeModelo}" em "${instituicao}"?`)) return;
+function abrirModalEliminarSeriais(equipamentoId, nomeModelo, instituicao, serials) {
+    contextoEliminarSeriais = { equipamentoId, nomeModelo, instituicao };
+    document.getElementById('eliminar-seriais-contexto').textContent = `${nomeModelo} | ${instituicao}`;
+    renderizarListaSeriaisParaEliminar(serials);
+    document.getElementById('modal-eliminar-seriais').style.display = 'flex';
+}
+
+function renderizarListaSeriaisParaEliminar(serials) {
+    const lista = document.getElementById('lista-seriais-eliminar');
+    lista.innerHTML = '';
+
+    if (serials.length === 0) {
+        lista.textContent = 'Não existem seriais disponíveis para eliminar nesta instituição.';
+        return;
+    }
+
+    serials.forEach(serial => {
+        const linha = document.createElement('div');
+        linha.className = 'serial-manager-row';
+
+        const valor = document.createElement('span');
+        valor.textContent = serial;
+
+        const botao = document.createElement('button');
+        botao.type = 'button';
+        botao.className = 'btn btn-sm btn-danger';
+        botao.textContent = 'Eliminar';
+        botao.addEventListener('click', async () => {
+            const contexto = contextoEliminarSeriais;
+            document.getElementById('modal-eliminar-seriais').style.display = 'none';
+            await eliminarSerialStock(contexto.equipamentoId, contexto.instituicao, serial, contexto.nomeModelo);
+            document.getElementById('modal-eliminar-seriais').style.display = 'flex';
+        });
+
+        linha.append(valor, botao);
+        lista.appendChild(linha);
+    });
+}
+
+async function atualizarModalEliminarSeriais() {
+    if (!contextoEliminarSeriais) return;
+    const { equipamentoId, instituicao } = contextoEliminarSeriais;
+    const registo = obterStockNaoTransferido().find(item =>
+        String(item.equipamentoId) === String(equipamentoId) &&
+        String(item.instituicao).trim().toLowerCase() === instituicao.trim().toLowerCase()
+    );
+    renderizarListaSeriaisParaEliminar(registo?.serials || []);
+}
+
+function renderizarSeriaisEditaveis(equipamentoId, instituicao, serials) {
+    const lista = document.getElementById('edit-seriais-lista');
+    lista.innerHTML = '';
+
+    if (serials.length === 0) {
+        lista.textContent = 'Não existem seriais disponíveis nesta instituição.';
+        return;
+    }
+
+    serials.forEach(serial => {
+        const linha = document.createElement('div');
+        linha.className = 'serial-manager-row';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = serial;
+        input.setAttribute('aria-label', `Número de série ${serial}`);
+
+        const botao = document.createElement('button');
+        botao.type = 'button';
+        botao.className = 'btn btn-sm btn-primary';
+        botao.textContent = 'Guardar serial';
+        botao.addEventListener('click', () => {
+            atualizarSerialStock(equipamentoId, instituicao, serial, input.value, botao);
+        });
+
+        linha.append(input, botao);
+        lista.appendChild(linha);
+    });
+}
+
+async function atualizarSerialStock(equipamentoId, instituicao, serial, novoSerial, botao) {
+    const serialFormatado = novoSerial.trim();
+    if (!serialFormatado) {
+        mostrarNotificacao('O número de série não pode ficar vazio.', 'error');
+        return;
+    }
+    if (serialFormatado === serial) return;
+
+    setButtonLoading(botao, true, 'A guardar...');
+    try {
+        const res = await fetchComAutenticacao(`${API_URL}/stock/${encodeURIComponent(equipamentoId)}/serial`, {
+            method: 'PATCH',
+            body: JSON.stringify({ serial, novoSerial: serialFormatado, instituicao })
+        });
+        if (!res) return;
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            mostrarNotificacao(data.error || 'Erro ao atualizar o serial.', 'error');
+            return;
+        }
+
+        await carregarDadosDaBD();
+        const registoAtualizado = obterStockNaoTransferido().find(item =>
+            String(item.equipamentoId) === String(equipamentoId) &&
+            String(item.instituicao).trim().toLowerCase() === instituicao.trim().toLowerCase()
+        );
+        abrirModalEditar(equipamentoId, instituicao, registoAtualizado?.serials || []);
+        mostrarNotificacao(`Serial atualizado para "${serialFormatado}".`, 'success');
+    } catch (error) {
+        console.error('Erro ao editar serial:', error);
+        mostrarNotificacao('Erro ao atualizar o serial.', 'error');
+    } finally {
+        setButtonLoading(botao, false);
+    }
+}
+
+async function eliminarSerialStock(equipamentoId, instituicao, serial, nomeModelo) {
+    const confirmado = await confirmarAcao(
+        `Eliminar o serial "${serial}" de "${nomeModelo}" em "${instituicao}"? Esta ação também remove o serial do histórico de entradas e transferências.`,
+        'Eliminar Serial'
+    );
+    if (!confirmado) return;
 
     try {
-        const res = await fetchComAutenticacao(`${API_URL}/entradas/${entradaId}`, { method: 'DELETE' });
+        const res = await fetchComAutenticacao(`${API_URL}/stock/${encodeURIComponent(equipamentoId)}/serial`, {
+            method: 'DELETE',
+            body: JSON.stringify({ serial, instituicao })
+        });
+        if (!res) return;
+
         if (res.ok) {
             await carregarDadosDaBD();
-            mostrarNotificacao('Registo eliminado com sucesso!');
+            await atualizarModalEliminarSeriais();
+            mostrarNotificacao(`Serial "${serial}" eliminado com sucesso!`, 'success');
+        } else {
+            const erro = await res.json().catch(() => ({}));
+            mostrarNotificacao(erro.error || 'Erro ao eliminar serial.', 'error');
         }
     } catch (error) {
-        mostrarNotificacao('Erro ao eliminar registo.');
+        console.error('Erro ao eliminar serial:', error);
+        mostrarNotificacao('Erro ao eliminar serial.', 'error');
     }
 }
 
 async function eliminarModeloGlobal(equipamentoId, nomeModelo) {
-    if (!confirm(`Deseja apagar definitivamente o modelo "${nomeModelo}"?`)) return;
+    const confirmado = await confirmarAcao(
+        `Deseja apagar definitivamente o modelo "${nomeModelo}"? A exclusão só é permitida caso não existam movimentações vinculadas.`,
+        'Eliminar Modelo'
+    );
+    if (!confirmado) return;
 
     try {
         const res = await fetchComAutenticacao(`${API_URL}/equipamentos/${equipamentoId}`, { method: 'DELETE' });
+        const data = await res.json().catch(() => ({}));
         if (res.ok) {
             await carregarDadosDaBD();
-            mostrarNotificacao('Modelo eliminado com sucesso!');
+            mostrarNotificacao('Modelo eliminado com sucesso!', 'success');
+        } else {
+            mostrarNotificacao(data.error || 'Erro ao eliminar modelo.', 'error');
         }
     } catch (error) {
-        mostrarNotificacao('Erro ao eliminar modelo.');
+        console.error('Erro ao eliminar modelo:', error);
+        mostrarNotificacao('Erro de rede ao eliminar modelo.', 'error');
     }
 }
 
@@ -868,7 +1180,7 @@ function preencherSelectItensRelatorio() {
         });
     } else {
         labelItem.textContent = 'Escolha o Item do Stock:';
-        const stockCalculado = obterStockAtual().filter(s => s.total > 0);
+        const stockCalculado = obterStockNaoTransferido();
         stockCalculado.forEach(item => {
             const eq = state.equipamentos.find(e => e.id === item.equipamentoId);
             if (eq) {
@@ -901,11 +1213,15 @@ function gerarPreviewRelatorio() {
 
         const eq = state.equipamentos.find(e => e.id === transf.equipamentoId);
         const dataHoje = new Date();
+        const serialsList = Array.isArray(transf.serials) ? transf.serials : [];
+        const serialsFormatted = serialsList.map(s => escapeHTML(s)).join('<br>');
+        const nomeEquipamento = eq ? `${escapeHTML(eq.marca)} ${escapeHTML(eq.modelo)}` : escapeHTML(transf.equipamentoNome);
+        const partNumber = eq ? escapeHTML(eq.partNumber) : 'N/A';
 
         html = `
             <div class="guia-container">
                 <div class="guia-header">
-                    <img src="${EMBLEMA_MOCAMBIQUE_URL}" class="emblema" alt="Emblema">
+                    <img src="${escapeHTML(EMBLEMA_MOCAMBIQUE_URL)}" class="emblema" alt="Emblema">
                     <h4>República de Moçambique</h4>
                     <h4>Ministério das Comunicações e Transformação Digital</h4>
                     <h4>Direcção de Administração e Recursos Humanos</h4>
@@ -919,7 +1235,7 @@ function gerarPreviewRelatorio() {
                 </div>
 
                 <div class="guia-texto">
-                    Em resposta à solicitação de alocação e transporte do equipamento abaixo descrito, pertencente à MoRENet, declara-se que o mesmo se encontra devidamente autorizado a ser levantado e a sair das instalações do <strong>${transf.origem}</strong>, com destino às instalações da <strong>${transf.destino}</strong>.
+                    Em resposta à solicitação de alocação e transporte do equipamento abaixo descrito, pertencente à MoRENet, declara-se que o mesmo se encontra devidamente autorizado a ser levantado e a sair das instalações do <strong>${escapeHTML(transf.origem)}</strong>, com destino às instalações da <strong>${escapeHTML(transf.destino)}</strong>.
                 </div>
 
                 <h4 style="margin-top:1rem; font-weight:bold;">1. Especificações do Equipamento Principal</h4>
@@ -935,15 +1251,15 @@ function gerarPreviewRelatorio() {
                     <tbody>
                         <tr>
                             <td>Equipamento de Rede</td>
-                            <td>${eq ? `${eq.marca}${eq.modelo}` : transf.equipamentoNome}</td>
-                            <td>${eq ? eq.partNumber : 'N/A'}</td>
-                            <td>${transf.serials.join('<br>')}</td>
+                            <td>${nomeEquipamento}</td>
+                            <td>${partNumber}</td>
+                            <td>${serialsFormatted || 'N/A'}</td>
                         </tr>
                     </tbody>
                 </table>
 
                 <div class="guia-texto">
-                    Pelo que, o referido equipamento e os seus respetivos acessórios encontram-se acondicionados na embalagem de fábrica, completos, em conformidade e prontos para o seu transporte e posterior instalação na <strong>${transf.destino}</strong>.
+                    Pelo que, o referido equipamento e os seus respetivos acessórios encontram-se acondicionados na embalagem de fábrica, completos, em conformidade e prontos para o seu transporte e posterior instalação na <strong>${escapeHTML(transf.destino)}</strong>.
                 </div>
 
                 <div style="margin-top: 1.5rem; text-align: center;">
@@ -967,30 +1283,31 @@ function gerarPreviewRelatorio() {
     } else if (tipo === 'inventario') {
         html = `
             <h2>Relatório de Inventário Completo</h2>
-            <p>Emitido em: ${new Date().toLocaleString('pt-PT')}</p><br>
+            <p>Emitido em: ${escapeHTML(new Date().toLocaleString('pt-PT'))}</p><br>
             <table class="guia-tabela">
                 <thead>
                     <tr><th>Equipamento</th><th>Part Number</th><th>Localização</th><th>Serial Numbers</th><th>Total</th></tr>
                 </thead>
                 <tbody>
         `;
-        obterStockAtual().filter(s => s.total > 0).forEach(item => {
+        obterStockNaoTransferido().forEach(item => {
             const eq = state.equipamentos.find(e => e.id === item.equipamentoId);
             if (eq) {
-                html += `<tr><td>${eq.marca} ${eq.modelo}</td><td>${eq.partNumber}</td><td>${item.instituicao}</td><td><small>${item.serials.join(', ')}</small></td><td><strong>${item.total}</strong></td></tr>`;
+                const serialsSafe = Array.isArray(item.serials) ? item.serials.map(s => escapeHTML(s)).join(', ') : escapeHTML(item.serials);
+                html += `<tr><td>${escapeHTML(eq.marca)} ${escapeHTML(eq.modelo)}</td><td>${escapeHTML(eq.partNumber)}</td><td>${escapeHTML(item.instituicao)}</td><td><small>${serialsSafe}</small></td><td><strong>${Number(item.total) || 0}</strong></td></tr>`;
             }
         });
         html += `</tbody></table>`;
     } else if (tipo === 'entradas') {
         html = `<h2>Histórico de Entradas</h2><br><table class="guia-tabela"><thead><tr><th>Data</th><th>Equipamento</th><th>Qtd</th><th>Destino</th></tr></thead><tbody>`;
         state.historicoEntradas.forEach(e => {
-            html += `<tr><td>${e.dataHora}</td><td>${e.equipamentoNome}</td><td>+${e.quantidade}</td><td>${e.instituicao}</td></tr>`;
+            html += `<tr><td>${escapeHTML(e.dataHora)}</td><td>${escapeHTML(e.equipamentoNome)}</td><td>+${Number(e.quantidade) || 0}</td><td>${escapeHTML(e.instituicao)}</td></tr>`;
         });
         html += `</tbody></table>`;
     } else if (tipo === 'transferencias') {
         html = `<h2>Histórico de Transferências</h2><br><table class="guia-tabela"><thead><tr><th>Data</th><th>Equipamento</th><th>Qtd</th><th>Origem</th><th>Destino</th></tr></thead><tbody>`;
         state.historicoTransferencias.forEach(t => {
-            html += `<tr><td>${t.dataHora}</td><td>${t.equipamentoNome}</td><td>${t.quantidade}</td><td>${t.origem}</td><td>${t.destino}</td></tr>`;
+            html += `<tr><td>${escapeHTML(t.dataHora)}</td><td>${escapeHTML(t.equipamentoNome)}</td><td>${Number(t.quantidade) || 0}</td><td>${escapeHTML(t.origem)}</td><td>${escapeHTML(t.destino)}</td></tr>`;
         });
         html += `</tbody></table>`;
     }
@@ -999,6 +1316,16 @@ function gerarPreviewRelatorio() {
 }
 
 function executarImpressao() {
+    const preview = document.getElementById('area-preview-impressao');
+    if (!preview || !preview.innerHTML.trim()) {
+        mostrarNotificacao('Não há documento para imprimir.', 'error');
+        return;
+    }
+
+    document.body.classList.add('imprimir-apenas-documento');
+    window.addEventListener('afterprint', () => {
+        document.body.classList.remove('imprimir-apenas-documento');
+    }, { once: true });
     window.print();
 }
 // Função para substituir o alert() nativo
@@ -1008,20 +1335,26 @@ function mostrarNotificacao(mensagem, tipo = 'success') {
 
     const toast = document.createElement('div');
     toast.className = `toast ${tipo}`;
-    toast.innerHTML = `
-        <span>${mensagem}</span>
-        <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
-    `;
 
+    const span = document.createElement('span');
+    span.textContent = mensagem;
+
+    const btn = document.createElement('button');
+    btn.className = 'toast-close';
+    btn.innerHTML = '&times;';
+    btn.onclick = () => toast.remove();
+
+    toast.appendChild(span);
+    toast.appendChild(btn);
     container.appendChild(toast);
 
-    // Remove automaticamente após 4 segundos
     setTimeout(() => {
         toast.style.opacity = '0';
         toast.style.transform = 'translateX(100%)';
         setTimeout(() => toast.remove(), 300);
     }, 4000);
 }
+
 function atualizarSeriaisDisponiveisTransf() {
     const equipamentoId = document.getElementById('select-equipamento-transf')?.value;
     const origem = document.getElementById('origem-transf')?.value;
@@ -1036,36 +1369,13 @@ function atualizarSeriaisDisponiveisTransf() {
         return;
     }
 
-    // Usa a propriedade correta: state.historicoEntradas
-    const entradas = (state && Array.isArray(state.historicoEntradas)) ? state.historicoEntradas : [];
+    const stock = obterStockAtual();
+    const itemStock = stock.find(item => 
+        String(item.equipamentoId) === String(equipamentoId) && 
+        String(item.instituicao).trim().toLowerCase() === String(origem).trim().toLowerCase()
+    );
 
-    // Filtra as entradas correspondentes
-    const entradasCorrespondentes = entradas.filter(ent => {
-        const idEntrada = (ent.equipamentoId || ent.equipamento_id || '').toString();
-        const instEntrada = (ent.instituicao || '').toString().trim().toLowerCase();
-        
-        return idEntrada === equipamentoId.toString() && instEntrada === origem.trim().toLowerCase();
-    });
-
-    let serialsDisponiveis = [];
-
-    entradasCorrespondentes.forEach(ent => {
-        let lista = ent.serials;
-
-        if (typeof lista === 'string') {
-            try {
-                lista = JSON.parse(lista);
-            } catch (e) {
-                lista = lista.split(/[\n,]+/).map(s => s.trim());
-            }
-        }
-
-        if (Array.isArray(lista)) {
-            serialsDisponiveis.push(...lista);
-        }
-    });
-
-    serialsDisponiveis = [...new Set(serialsDisponiveis.map(s => s.toString().trim()))].filter(s => s.length > 0);
+    const serialsDisponiveis = (itemStock && Array.isArray(itemStock.serials)) ? itemStock.serials : [];
 
     if (serialsDisponiveis.length === 0) {
         const opt = document.createElement('option');
@@ -1082,8 +1392,13 @@ function atualizarSeriaisDisponiveisTransf() {
         selectSerials.appendChild(opt);
     });
 }
+
 async function apagarTransferencia(id) {
-    if (!confirm('Deseja realmente apagar este registo de transferência?')) return;
+    const confirmado = await confirmarAcao(
+        'Tem a certeza de que deseja anular esta transferência? O equipamento regressará automaticamente à instituição de origem.',
+        'Anular Transferência'
+    );
+    if (!confirmado) return;
 
     try {
         const res = await fetchComAutenticacao(`${API_URL}/transferencias/${id}`, {
@@ -1093,26 +1408,21 @@ async function apagarTransferencia(id) {
         if (!res) return;
 
         if (res.ok) {
-            // Remove o item diretamente do estado local
             state.historicoTransferencias = state.historicoTransferencias.filter(item => item.id !== id);
-
-            // Atualiza tabelas e KPIs no ecrã
             atualizarTabelaTransferencias();
             atualizarKPIs();
             await carregarDadosDaBD();
-
-            mostrarNotificacao('Transferência eliminada com sucesso!', 'success');
+            mostrarNotificacao('Transferência anulada com sucesso!', 'success');
         } else {
             const erro = await res.json().catch(() => ({}));
-            mostrarNotificacao(erro.error || 'Erro ao apagar transferência.', 'error');
+            mostrarNotificacao(erro.error || 'Erro ao anular transferência.', 'error');
         }
     } catch (err) {
-        console.error('Erro ao apagar transferência:', err);
-        mostrarNotificacao('Erro de rede ao tentar apagar transferência.', 'error');
+        console.error('Erro ao anular transferência:', err);
+        mostrarNotificacao('Erro de rede ao tentar anular transferência.', 'error');
     }
 }
 
-// Função para alternar entre as abas/secções do Dashboard (Fora de qualquer outra função)
 function mostrarSecao(idSecao) {
     const secoes = document.querySelectorAll('.data-tab');
     secoes.forEach(secao => {
@@ -1137,3 +1447,14 @@ function mostrarSecao(idSecao) {
     }
 
 }
+// ==========================================================================
+// 8. Resiliência de Rede (Online / Offline)
+// ==========================================================================
+window.addEventListener('online', () => {
+    mostrarNotificacao('Ligação à rede restabelecida!', 'success');
+    carregarDadosDaBD();
+});
+
+window.addEventListener('offline', () => {
+    mostrarNotificacao('Atenção: Perda de ligação à rede. O sistema está offline.', 'error');
+});

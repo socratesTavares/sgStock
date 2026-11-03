@@ -8,6 +8,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background-color: #f4f6f9; }
         .login-card { background: #ffffff; padding: 2.5rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        .login-logo { display: block; width: min(100%, 220px); height: auto; margin: 0 auto 1.25rem; }
         .login-card h2 { margin-bottom: 1.5rem; text-align: center; color: #333; }
         .form-group { margin-bottom: 1.2rem; }
         .form-group label { display: block; margin-bottom: 0.4rem; font-weight: 600; color: #555; }
@@ -20,6 +21,7 @@
 <body>
 
     <div class="login-card">
+        <img class="login-logo" src="MoRENet_Logo.png" alt="Logótipo MoRENet">
         <h2>sgStock - Acesso</h2>
         <div id="mensagem-erro" class="error-msg"></div>
 
@@ -36,48 +38,6 @@
         </form>
     </div>
 
-    <script>
-        // Se já estiver logado, redireciona diretamente para o Dashboard
-        if (localStorage.getItem('token')) {
-            window.location.href = 'index.html';
-        }
-
-        document.getElementById('form-login').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const senha = document.getElementById('senha').value;
-            const msgErro = document.getElementById('mensagem-erro');
-
-            msgErro.style.display = 'none';
-
-            try {
-                const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, senha })
-                });
-
-                const data = await res.json();
-
-                if (!res.ok) {
-                    msgErro.textContent = data.error || 'Erro ao efetuar login.';
-                    msgErro.style.display = 'block';
-                    return;
-                }
-
-                // Guarda o token e dados do utilizador
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('usuario', JSON.stringify(data.usuario));
-
-                // Redireciona para o sistema principal
-                window.location.href = 'index.html';
-
-            } catch (err) {
-                msgErro.textContent = 'Erro ao conectar com o servidor.';
-                msgErro.style.display = 'block';
-                console.log(err);
-            }
-        });
-    </script>
+    <script src="login.js"></script>
 </body>
 </html>

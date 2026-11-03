@@ -73,6 +73,19 @@ body {
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
+.sidebar-header .brand {
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar-header .brand-logo {
+    display: block;
+    width: min(100%, 210px);
+    height: auto;
+    margin-bottom: 0.8rem;
+    border-radius: 4px;
+}
+
 .brand h1 {
     font-size: 1.35rem;
     font-weight: 700;
@@ -148,6 +161,29 @@ body {
     align-items: center;
     gap: 1rem;
     box-shadow: var(--shadow);
+}
+
+.mobile-header .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.mobile-header .brand-logo {
+    display: block;
+    width: min(24vw, 82px);
+    height: auto;
+    flex: 0 0 auto;
+    border-radius: 3px;
+}
+
+.mobile-header .brand h1 {
+    font-size: 1.05rem;
+}
+
+.mobile-header .badge-subtitle {
+    font-size: 0.7rem;
 }
 
 .btn-sidebar-toggle {
@@ -340,6 +376,49 @@ input:focus, select:focus, textarea:focus {
     overflow-x: auto;
 }
 
+.stock-serial-list {
+    max-height: 7rem;
+    overflow: auto;
+    border: 1px solid var(--border-color);
+    border-radius: calc(var(--radius) / 2);
+    padding: 0.35rem 0.5rem;
+}
+
+.stock-serial {
+    white-space: nowrap;
+}
+
+.historico-entradas-scroll {
+    max-height: 340px;
+    overflow: auto;
+}
+
+#tabela-historico {
+    min-width: 760px;
+}
+
+#tabela-historico thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.historico-equipamento,
+.historico-serials {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.historico-equipamento {
+    white-space: nowrap;
+}
+
+.historico-serials {
+    max-width: 100%;
+    white-space: nowrap;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
@@ -360,6 +439,42 @@ th {
 
 tbody tr:hover {
     background-color: rgba(241, 245, 249, 0.6);
+}
+
+.serial-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.serial-item + .serial-item {
+    margin-top: 0.25rem;
+}
+
+.modal-content-wide {
+    max-width: 720px;
+}
+
+.serial-manager-list {
+    display: grid;
+    gap: 0.6rem;
+    max-height: min(50vh, 26rem);
+    overflow-y: auto;
+    padding: 0.2rem;
+}
+
+.serial-manager-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+@media (max-width: 520px) {
+    .serial-manager-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 .text-right { text-align: right; }
@@ -668,41 +783,90 @@ tbody tr:hover {
     }
 }
 
-/* Regras de Impressão Aprimoradas (Remove Scrollbars e Elementos de Navegação) */
+/* Imprime apenas o documento gerado, sem limites de scroll */
 @media print {
-    /* Esconde elementos de navegação, cabeçalhos de sistema e botões na impressão */
-    aside.sidebar,
-    header.topbar,
-    .mobile-header,
-    .preview-actions,
-    .form-row,
-    button {
-        display: none !important;
+    body.imprimir-apenas-documento * {
+        visibility: hidden !important;
     }
 
-    /* Oculta todas as abas que não sejam a de relatórios */
-    .tab-content:not(#tab-relatorios) {
-        display: none !important;
+    body.imprimir-apenas-documento #area-preview-impressao,
+    body.imprimir-apenas-documento #area-preview-impressao * {
+        visibility: visible !important;
     }
 
-    /* Expande totalmente a área de relatórios e preview, eliminando scrollbars e limites de altura */
-    #tab-relatorios,
-    #area-preview-impressao {
-        display: block !important;
+    body.imprimir-apenas-documento #area-preview-impressao {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
         max-height: none !important;
         height: auto !important;
         overflow: visible !important;
         border: none !important;
         box-shadow: none !important;
-        padding: 0 !important;
+        padding: 15mm 12mm !important;
         margin: 0 !important;
-        width: 100% !important;
+        background: white !important;
     }
 
-    /* Remove limites do documento no corpo para impressão limpa A4 */
     body, html {
         height: auto !important;
         overflow: visible !important;
         background: white !important;
     }
+
+    @page {
+        margin: 0;
+    }
+}
+
+
+/* ==========================================================================
+   Estados de Carregamento e Feedback Visual (Ação 3)
+   ========================================================================== */
+.loading-state {
+    text-align: center;
+    padding: 3rem 1rem !important;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.spinner {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    border: 3px solid rgba(30, 64, 175, 0.2);
+    border-radius: 50%;
+    border-top-color: var(--primary-color);
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+.btn:disabled, .btn[disabled] {
+    opacity: 0.65 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.offline-badge {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background-color: var(--danger-color);
+    color: #ffffff;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    gap: 8px;
 }
