@@ -18,7 +18,8 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             imgSrc: ["'self'", "data:", "https://encrypted-tbn0.gstatic.com"],
             scriptSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'"]
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            upgradeInsecureRequests: null
         }
     },
     crossOriginEmbedderPolicy: false
