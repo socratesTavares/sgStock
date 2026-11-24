@@ -1,0 +1,18 @@
+{
+  "name": "sgStock - Gestão de Stock e Governação Tecnológica MoRENet",
+  "short_name": "sgStock",
+  "description": "Sistema de Gestão de Stock, Inventário de Telecomunicações e Governação de Ativos para a MoRENet / MCTD",
+  "start_url": "/home",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#1e3a8a",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -5,8 +5,10 @@
     <script src="auth.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão de Stock de Equipamentos de Rede</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="theme-color" content="#1e3a8a">
+    <title>sgStock - Gestão de Stock e Governação Tecnológica MoRENet / MCTD</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css?v=10">
 </head>
 
 <body>
@@ -19,21 +21,21 @@
             <div class="sidebar-header">
                 <div class="brand">
                     <img class="brand-logo" src="MoRENet_Logo.png" alt="Logótipo MoRENet">
-                    <h1>Gestão de Stock</h1>
-                    <span class="badge-subtitle">Equipamentos de Rede</span>
+                    <h1>sgStock</h1>
+                    <span class="badge-subtitle">MoRENet / MCTD</span>
                 </div>
                 <button class="btn-sidebar-toggle close-btn" data-action="toggle-sidebar"
                     aria-label="Fechar Menu">&times;</button>
             </div>
             <nav class="main-nav">
-                <button class="nav-btn active" data-tab="tab-visao-geral">Visão Geral</button>
-                <button class="nav-btn" data-tab="tab-inventario">Inventário</button>
-                <button class="nav-btn" data-tab="tab-movimentacoes">Movimentações</button>
-                <button class="nav-btn" data-tab="tab-relatorios">Relatórios</button>
-                <!-- Este botão só ficará visível para Administradores -->
-                <button class="nav-btn" id="btn-menu-usuarios" data-tab="tab-usuarios" style="display: none;">Registar Utilizador</button>
-                <!-- Exemplo de Botão no Cabeçalho ou Menu -->
-
+                <button class="nav-btn active" data-tab="tab-visao-geral">Visão Geral & Decisão</button>
+                <button class="nav-btn" data-tab="tab-inventario">Inventário Ativo</button>
+                <button class="nav-btn" data-tab="tab-movimentacoes">Movimentações & Guias</button>
+                <button class="nav-btn" data-tab="tab-relatorios">Relatórios & Guias A4</button>
+                <!-- Menus restritos a Administradores -->
+                <button class="nav-btn" id="btn-menu-auditoria" data-tab="tab-auditoria" style="display: none;">Centro de Auditoria</button>
+                <button class="nav-btn" id="btn-menu-usuarios" data-tab="tab-usuarios" style="display: none;">Gestão de Utilizadores</button>
+                <button class="nav-btn" id="btn-menu-cadastros" data-tab="tab-cadastros" style="display: none;">Fornecedores & Instituições</button>
             </nav>
         </aside>
 
@@ -49,74 +51,141 @@
                     aria-label="Abrir Menu">&#9776;</button>
                 <div class="brand">
                     <img class="brand-logo" src="MoRENet_Logo.png" alt="Logótipo MoRENet">
-                    <h1>Gestão de Stock</h1>
-                    <span class="badge-subtitle">Equipamentos de Rede</span>
+                    <h1>sgStock</h1>
+                    <span class="badge-subtitle">Governação Tecnológica</span>
                 </div>
             </header>
 
             <main class="container">
                 <!-- Barra Superior / Topbar -->
                 <header class="topbar">
-                    <div class="user-profile">
-                        <div class="user-avatar" id="avatar-inicial">U</div>
-                        <div class="user-details">
-                            <span class="user-name" id="user-nome">Utilizador</span>
-                            <span class="user-role" id="user-perfil">Técnico</span>
-                        </div>
+                    <div class="topbar-left">
+                        <span id="badge-status-rede" class="badge-status badge-online" title="Estado da Ligação">● Online</span>
+                        <span id="badge-instituicao-user" class="badge-instituicao">MCTD Sede</span>
                     </div>
 
-                    <!-- Botão de Logout Estilizado -->
-                    <button data-action="logout" class="btn-logout" title="Terminar Sessão">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                            <polyline points="16 17 21 12 16 7"></polyline>
-                            <line x1="21" y1="12" x2="9" y2="12"></line>
-                        </svg>
-                        <span>Sair</span>
-                    </button>
+                    <div class="topbar-right">
+                        <div class="user-profile">
+                            <div class="user-avatar" id="avatar-inicial">U</div>
+                            <div class="user-details">
+                                <span class="user-name" id="user-nome">Utilizador</span>
+                                <span class="user-role" id="user-perfil">Técnico</span>
+                            </div>
+                        </div>
+
+                        <!-- Botão Alterar Senha -->
+                        <button data-open-modal="modal-senha" class="btn-icon-topbar" title="Alterar Palavra-Passe">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </button>
+
+                        <!-- Botão de Logout -->
+                        <button data-action="logout" class="btn-logout" title="Terminar Sessão">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            <span>Sair</span>
+                        </button>
+                    </div>
                 </header>
+
                 <!-- MENSAGEM DE ERRO/ESTADO DE LIGAÇÃO -->
                 <div id="api-alert" class="alert alert-danger" style="display: none;">
                     Não foi possível ligar à Base de Dados. Verifique se o servidor backend está em execução.
                 </div>
 
-                <!-- ABA 1: VISÃO GERAL -->
+                <!-- AVISO DE SINCRONIZAÇÃO OFFLINE -->
+                <div id="offline-sync-alert" class="alert alert-warning" style="display: none;">
+                    ⚠️ Está em modo offline. As operações realizadas serão guardadas localmente e sincronizadas quando a ligação for restabelecida.
+                </div>
+
+                <!-- ========================================== -->
+                <!-- ABA 1: VISÃO GERAL & DECISÃO ANALÍTICA     -->
+                <!-- ========================================== -->
                 <section id="tab-visao-geral" class="tab-content active">
+                    <!-- KPIs Acionáveis -->
                     <div class="kpi-grid">
                         <div class="kpi-card">
                             <span class="kpi-title">Modelos Cadastrados</span>
                             <span class="kpi-value" id="kpi-total-modelos">0</span>
+                            <span class="kpi-subtext" id="kpi-sub-modelos">Especificações de rede</span>
                         </div>
                         <div class="kpi-card">
-                            <span class="kpi-title">Entradas Registadas</span>
-                            <span class="kpi-value" id="kpi-total-entradas">0</span>
-                        </div>
-                         <div class="kpi-card">
-                            <span class="kpi-title">Total de Unidades em Stock</span>
+                            <span class="kpi-title">Unidades em Stock</span>
                             <span class="kpi-value" id="kpi-total-unidades">0</span>
+                            <span class="kpi-subtext" id="kpi-sub-unidades">Disponíveis na rede</span>
+                        </div>
+                        <div class="kpi-card kpi-highlight">
+                            <span class="kpi-title">Valor Total Investido</span>
+                            <span class="kpi-value" id="kpi-valor-investido">0 MZN</span>
+                            <span class="kpi-subtext">Inventário rastreado</span>
                         </div>
                         <div class="kpi-card">
-                            <span class="kpi-title">Transferências Efetuadas</span>
-                            <span class="kpi-value" id="kpi-total-transferencias">0</span>
+                            <span class="kpi-title">Infraestrutura Fibra</span>
+                            <span class="kpi-value" id="kpi-fibra-ativos">0</span>
+                            <span class="kpi-subtext">Ativos com fibra escura</span>
                         </div>
                     </div>
 
+                    <!-- Ações Rápidas -->
                     <div class="card">
                         <div class="card-header">
-                            <h2>Ações Rápidas</h2>
+                            <h2>Ações Rápidas de Operação</h2>
                         </div>
                         <div class="quick-actions">
                             <button class="btn btn-primary" data-open-modal="modal-modelo">+ Novo Modelo</button>
-                            <button class="btn btn-success" data-open-modal="modal-entrada">+ Registar
-                                Entrada</button>
-                            <button class="btn btn-secondary" data-open-modal="modal-transferencia"> Efetuar
-                                Transferência</button>
-                            <button class="btn btn-print" data-action="open-reports"> Emitir Guia /
-                                Relatório</button>
+                            <button class="btn btn-success" data-open-modal="modal-entrada">+ Registar Entrada</button>
+                            <button class="btn btn-primary" data-open-modal="modal-entrada-lote">+ Entrada por Fatura</button>
+                            <button class="btn btn-ocr" data-open-modal="modal-ocr">📷 Leitor OCR / Etiquetas</button>
+                            <button class="btn btn-secondary" data-open-modal="modal-transferencia">⇄ Transferência</button>
+                            <button class="btn btn-print" data-action="open-reports">📑 Guias Oficiais</button>
+                            <button class="btn btn-outline" data-open-modal="modal-importar-csv">📥 Importar CSV</button>
                         </div>
                     </div>
 
+                    <!-- Matriz de Saúde de Ativos (Asset Health Matrix) -->
+                    <div class="card">
+                        <div class="card-header flex-between">
+                            <div>
+                                <h2>Matriz de Saúde de Ativos (Asset Health Matrix)</h2>
+                                <p class="section-desc">Classificação preditiva baseada em idade operacional, ciclo de vida útil e histórico de avarias.</p>
+                            </div>
+                            <div class="health-filters">
+                                <button class="btn-filter-health active" data-saude-filter="todos">Todos (<span id="count-saude-todos">0</span>)</button>
+                                <button class="btn-filter-health saude-alerta-btn" data-saude-filter="Atenção/Alerta">Alerta (<span id="count-saude-alerta">0</span>)</button>
+                                <button class="btn-filter-health saude-fim-btn" data-saude-filter="Fim de Vida Útil">Fim de Vida (<span id="count-saude-fim">0</span>)</button>
+                                <button class="btn-filter-health saude-ok-btn" data-saude-filter="Saudável">Saudável (<span id="count-saude-ok">0</span>)</button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table id="tabela-asset-health">
+                                <thead>
+                                    <tr>
+                                        <th>Equipamento</th>
+                                        <th>Número de Série (S/N)</th>
+                                        <th>Localização Atual</th>
+                                        <th>Idade / Vida Útil</th>
+                                        <th>Avarias</th>
+                                        <th>Saúde (%)</th>
+                                        <th>Classificação</th>
+                                        <th>Última Justificativa</th>
+                                        <th>Ação Recomendada</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="corpo-tabela-asset-health">
+                                    <!-- Preenchido via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Últimas Movimentações -->
                     <div class="card">
                         <div class="card-header">
                             <h2>Últimas Movimentações</h2>
@@ -140,27 +209,53 @@
                     </div>
                 </section>
 
-                <!-- ABA 2: INVENTÁRIO -->
+                <!-- ========================================== -->
+                <!-- ABA 2: INVENTÁRIO                          -->
+                <!-- ========================================== -->
                 <section id="tab-inventario" class="tab-content">
                     <div class="card">
                         <div class="card-header flex-between">
                             <div>
+                                <h2>Modelos Cadastrados</h2>
+                                <p class="section-desc">Consulte e mantenha os modelos e as respetivas especificações técnicas.</p>
+                            </div>
+                            <button class="btn btn-primary btn-sm" data-open-modal="modal-modelo">+ Novo Modelo</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table id="tabela-modelos">
+                                <thead>
+                                    <tr>
+                                        <th>Marca</th>
+                                        <th>Modelo</th>
+                                        <th>Part Number (P/N)</th>
+                                        <th>Categoria</th>
+                                        <th>Vida útil</th>
+                                        <th>Especificações</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="corpo-tabela-modelos"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header flex-between">
+                            <div>
                                 <h2>Inventário / Stock Atual</h2>
-                                <p class="section-desc">Consulte e gira o stock de equipamentos em tempo real.</p>
+                                <p class="section-desc">Posição de inventário em tempo real por instituição autorizada.</p>
                             </div>
                             <div class="header-actions">
-                                <button class="btn btn-primary btn-sm" data-open-modal="modal-modelo">+ Novo
-                                    Modelo</button>
-                                <button class="btn btn-success btn-sm" data-open-modal="modal-entrada">+
-                                    Entrada</button>
+                                <button class="btn btn-outline btn-sm" id="btn-exportar-inventario-csv">📥 Exportar CSV (Excel)</button>
+                                <button class="btn btn-outline btn-sm" data-open-modal="modal-importar-csv">📤 Importar CSV</button>
+                                <button class="btn btn-primary btn-sm" data-open-modal="modal-modelo">+ Novo Modelo</button>
+                                <button class="btn btn-success btn-sm" data-open-modal="modal-entrada">+ Entrada</button>
                             </div>
                         </div>
 
                         <!-- Pesquisa e Filtros -->
                         <div class="filter-bar">
                             <input type="text" id="search-inventario"
-                                placeholder="Pesquisar por Marca, Modelo, P/N, S/N ou Localização..."
-                                >
+                                placeholder="Pesquisar por Marca, Modelo, P/N, S/N ou Localização...">
                         </div>
 
                         <div class="table-responsive">
@@ -170,10 +265,11 @@
                                         <th>Marca</th>
                                         <th>Modelo</th>
                                         <th>Part Number</th>
-                                        <th>Serial Numbers</th>
+                                        <th>Categoria</th>
+                                        <th>Números de Série (S/N)</th>
                                         <th>Localização / Instituição</th>
                                         <th>Qtd</th>
-                                        <th class="text-right">Ações</th>
+                                        <th class="text-right">Ações & Etiquetas</th>
                                     </tr>
                                 </thead>
                                 <tbody id="corpo-tabela-stock">
@@ -184,13 +280,21 @@
                     </div>
                 </section>
 
-                <!-- ABA 3: MOVIMENTAÇÕES -->
+                <!-- ========================================== -->
+                <!-- ABA 3: MOVIMENTAÇÕES                       -->
+                <!-- ========================================== -->
                 <section id="tab-movimentacoes" class="tab-content">
                     <div class="card">
                         <div class="card-header flex-between">
-                            <h2>Histórico de Entradas de Stock</h2>
-                            <button class="btn btn-success btn-sm" data-open-modal="modal-entrada">+ Registar Nova
-                                Entrada</button>
+                            <div>
+                                <h2>Histórico de Entradas de Stock</h2>
+                                <p class="section-desc">Rastreamento de aquisições, faturas, fornecedores e estado físico.</p>
+                            </div>
+                            <div class="header-actions">
+                                <button class="btn btn-outline btn-sm" id="btn-exportar-entradas-csv">📥 Exportar CSV</button>
+                                <button class="btn btn-primary btn-sm" data-open-modal="modal-entrada-lote">+ Entrada por Fatura</button>
+                                <button class="btn btn-success btn-sm" data-open-modal="modal-entrada">+ Entrada Individual</button>
+                            </div>
                         </div>
                         <div class="table-responsive historico-entradas-scroll">
                             <table id="tabela-historico">
@@ -198,8 +302,11 @@
                                     <tr>
                                         <th>Data/Hora</th>
                                         <th>Equipamento</th>
-                                        <th>Quantidade</th>
-                                        <th>Instituição / Destino</th>
+                                        <th>Qtd</th>
+                                        <th>Fatura / Fornecedor</th>
+                                        <th>Custo Unit.</th>
+                                        <th>Instituição</th>
+                                        <th>Estado</th>
                                         <th style="text-align: center;">Ações</th>
                                     </tr>
                                 </thead>
@@ -211,10 +318,15 @@
                     </div>
 
                     <div class="card">
-                        <div class="card-header flex-between ">
-                            <h2>Histórico de Transferências</h2>
-                            <button class="btn btn-primary btn-sm" data-open-modal="modal-transferencia">+
-                                Transferir Equipamento</button>
+                        <div class="card-header flex-between">
+                            <div>
+                                <h2>Histórico de Transferências Oficiais</h2>
+                                <p class="section-desc">Registo auditado de transporte de equipamentos entre pontos de presença MoRENet.</p>
+                            </div>
+                            <div class="header-actions">
+                                <button class="btn btn-outline btn-sm" id="btn-exportar-transf-csv">📥 Exportar CSV</button>
+                                <button class="btn btn-primary btn-sm" data-open-modal="modal-transferencia">+ Transferir Equipamento</button>
+                            </div>
                         </div>
                         <div class="table-responsive">
                             <table id="tabela-transferencias">
@@ -225,6 +337,7 @@
                                         <th>Qtd</th>
                                         <th>Origem</th>
                                         <th>Destino</th>
+                                        <th>Responsável / Viatura</th>
                                         <th style="text-align: center;">Ações</th>
                                     </tr>
                                 </thead>
@@ -236,24 +349,27 @@
                     </div>
                 </section>
 
-                <!-- ABA 4: RELATÓRIOS E DOCUMENTOS OFICIAIS -->
+                <!-- ========================================== -->
+                <!-- ABA 4: RELATÓRIOS & GUIAS OFICIAIS         -->
+                <!-- ========================================== -->
                 <section id="tab-relatorios" class="tab-content">
                     <div class="card">
                         <div class="card-header">
-                            <h2>Gerador de Documentos e Relatórios</h2>
-                            <p class="section-desc">Selecione o tipo de documento para gerar e pré-visualizar antes da
-                                impressão.</p>
+                            <h2>Emissão de Guias Oficiais e Relatórios Executivos</h2>
+                            <p class="section-desc">Gere Guias de Saída, Guias de Recepção e relatórios com exibição mandatória de Números de Série.</p>
                         </div>
 
+                        <!-- Filtros Avançados -->
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="select-tipo-relatorio">Tipo de Documento:</label>
                                 <select id="select-tipo-relatorio">
-                                    <option value="guia-saida">Guia de Saída Oficial (Modelo MCTD / MoRENet)</option>
-                                    <option value="inventario">Inventário Completo (Stock Atual)</option>
+                                    <option value="guia-saida">Guia de Saída Oficial (Transporte e Saída)</option>
+                                    <option value="guia-recepcao">Guia de Recepção Oficial (Entrada e Proveniência)</option>
+                                    <option value="inventario">Inventário Completo de Stock Atual</option>
                                     <option value="entradas">Histórico Completo de Entradas</option>
                                     <option value="transferencias">Histórico Completo de Transferências</option>
-                                    <option value="item">Ficha Individual de Item</option>
+                                    <option value="asset-health">Relatório de Saúde de Ativos & Preditivo</option>
                                 </select>
                             </div>
 
@@ -265,50 +381,173 @@
                             </div>
                         </div>
 
-                        <div class="preview-actions">
-                            <button class="btn btn-print" data-action="print-report"> Imprimir Documento</button>
+                        <div class="form-row" id="row-custom-signatario">
+                            <div class="form-group">
+                                <label for="input-signatario-nome">Nome do Responsável / Signatário:</label>
+                                <input type="text" id="input-signatario-nome" value="Victor Guambe" placeholder="Ex: Victor Guambe">
+                            </div>
+                            <div class="form-group">
+                                <label for="input-signatario-cargo">Cargo / Função do Signatário:</label>
+                                <input type="text" id="input-signatario-cargo" placeholder="Opcional — Ex: Diretor de TI / Repartição de Património">
+                            </div>
                         </div>
 
-                        <!-- Área de Pré-Visualização -->
+                        <div class="preview-actions flex-between">
+                            <div>
+                                <button class="btn btn-print" data-action="print-report">🖨️ Imprimir Documento A4</button>
+                            </div>
+                        </div>
+
+                        <!-- Área de Pré-Visualização Formatada -->
                         <div id="area-preview-impressao" class="paper-preview">
                             <!-- Conteúdo montado dinamicamente via JS -->
                         </div>
                     </div>
                 </section>
 
-                <!--Seccao de formulario de Registros-->
-                <section id="tab-usuarios" class="tab-content">
-                    <h2>Registar Novo Utilizador</h2>
-                    <div id="alerta-usuario"
-                        style="display: none; padding: 10px; margin-bottom: 15px; border-radius: 4px;"></div>
-
-                    <form id="form-novo-usuario" style="max-width: 500px;">
-                        <div class="form-group">
-                            <label>Nome Completo</label>
-                            <input type="text" id="reg-nome" required class="form-control">
+                <!-- ========================================== -->
+                <!-- ABA 5: CENTRO DE AUDITORIA (AUDIT HUB)     -->
+                <!-- ========================================== -->
+                <section id="tab-auditoria" class="tab-content">
+                    <div class="card">
+                        <div class="card-header flex-between">
+                            <div>
+                                <h2>Centro de Auditoria Imutável (Audit Hub)</h2>
+                                <p class="section-desc">Registo forense e imutável de todas as ações sensíveis realizadas no sistema sgStock.</p>
+                            </div>
+                            <div class="header-actions">
+                                <button class="btn btn-outline btn-sm" id="btn-exportar-auditoria-csv">📥 Exportar CSV</button>
+                                <button class="btn btn-danger btn-sm" id="btn-backup-auditoria-email">✉️ Enviar Backup por E-mail</button>
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label>Email</label>
-                            <input type="email" id="reg-email" required class="form-control">
-                        </div>
-
-                        <div class="form-group">
-                            <label>Senha</label>
-                            <input type="password" id="reg-senha" required class="form-control">
-                        </div>
-
-                        <div class="form-group">
-                            <label>Nível de Acesso (Perfil)</label>
-                            <select id="reg-perfil" required class="form-control">
-                                <option value="tecnico">Técnico</option>
-                                <option value="administrador">Administrador</option>
+                        <div class="filter-bar audit-filter-bar">
+                            <input type="text" id="audit-filtro-busca" placeholder="Filtrar por utilizador, entidade ou ação...">
+                            <label class="audit-date-filter">De <input type="date" id="audit-data-inicio"></label>
+                            <label class="audit-date-filter">Até <input type="date" id="audit-data-fim"></label>
+                            <select id="audit-filtro-acao">
+                                <option value="">Todas as Ações</option>
+                                <option value="LOGIN">Login</option>
+                                <option value="CRIAR_MODELO">Criar Modelo</option>
+                                <option value="EDITAR_MODELO">Editar Modelo</option>
+                                <option value="ELIMINAR_MODELO">Eliminar Modelo</option>
+                                <option value="REGISTAR_ENTRADA">Registar Entrada</option>
+                                <option value="EFETUAR_TRANSFERENCIA">Efetuar Transferência</option>
+                                <option value="ANULAR_TRANSFERENCIA">Anular Transferência</option>
+                                <option value="ALTERAR_SENHA">Alterar Palavra-passe</option>
                             </select>
+                            <button class="btn btn-secondary btn-sm" id="btn-recarregar-auditoria">Recarregar Logs</button>
                         </div>
 
-                        <button type="submit" class="btn btn-primary" style="margin-top: 15px;">Salvar
-                            Utilizador</button>
-                    </form>
+                        <div class="table-responsive">
+                            <table id="tabela-auditoria">
+                                <thead>
+                                    <tr>
+                                        <th>Data/Hora (UTC)</th>
+                                        <th>Utilizador</th>
+                                        <th>Perfil</th>
+                                        <th>Instituição</th>
+                                        <th>Ação</th>
+                                        <th>Entidade</th>
+                                        <th>IP de Origem</th>
+                                        <th>Dados Modificados</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="corpo-tabela-auditoria">
+                                    <!-- Preenchido via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ========================================== -->
+                <!-- ABA 6: GESTÃO DE UTILIZADORES (ADMIN)      -->
+                <!-- ========================================== -->
+                <section id="tab-usuarios" class="tab-content">
+                    <div class="card" style="max-width: 650px; margin: 0 auto 1.5rem;">
+                        <div class="card-header">
+                            <h2>Registar Novo Utilizador Institucional</h2>
+                            <p class="section-desc">Associe técnicos às suas instituições autorizadas para garantir conformidade de acesso (RBAC).</p>
+                        </div>
+
+                        <div id="alerta-usuario" style="display: none; padding: 12px; margin-bottom: 15px; border-radius: 6px;"></div>
+
+                        <form id="form-novo-usuario">
+                            <div class="form-group">
+                                <label>Nome Completo:</label>
+                                <input type="text" id="reg-nome" required class="form-control" placeholder="Ex: Eng. João Matsinhe">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Email Institucional:</label>
+                                <input type="email" id="reg-email" required class="form-control" placeholder="Ex: jmatsinhe@morenet.ac.mz">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Palavra-passe Provisória:</label>
+                                <input type="password" id="reg-senha" required class="form-control" minlength="6" placeholder="Mínimo 6 caracteres">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Nível de Acesso (Perfil):</label>
+                                <select id="reg-perfil" required class="form-control">
+                                    <option value="tecnico">Técnico (Escopo Restrito à Instituição)</option>
+                                    <option value="administrador">Administrador Geral (Visão Global)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Instituição de Afetação:</label>
+                                <select id="reg-instituicao" required class="form-control">
+                                    <!-- Preenchido via JS através de /api/instituicoes -->
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" style="margin-top: 15px; width: 100%;">Criar Conta de Acesso</button>
+                        </form>
+                    </div>
+                    <div class="card">
+                        <div class="card-header flex-between">
+                            <div>
+                                <h2>Utilizadores e Reposição de Senha</h2>
+                                <p class="section-desc">Consulta de operadores e reposição administrativa de palavra-passe.</p>
+                            </div>
+                            <button type="button" class="btn btn-outline btn-sm" id="btn-recarregar-usuarios">Recarregar</button>
+                        </div>
+                        <p id="aviso-lista-usuarios" class="section-desc" role="status"></p>
+                        <div class="table-responsive">
+                            <table>
+                                <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Instituição</th><th>Ações</th></tr></thead>
+                                <tbody id="corpo-tabela-usuarios">
+                                    <tr><td colspan="5" class="loading-state">A carregar utilizadores…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="tab-cadastros" class="tab-content">
+                    <div class="card">
+                        <div class="card-header flex-between">
+                            <div><h2>Fornecedores</h2><p class="section-desc">Gestão centralizada de empresas e contactos.</p></div>
+                            <button class="btn btn-primary btn-sm" data-open-modal="modal-fornecedor">+ Novo Fornecedor</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table><thead><tr><th>Empresa</th><th>Contacto</th><th>E-mail</th><th>Telefone</th><th>NIF</th><th>Ações</th></tr></thead>
+                                <tbody id="corpo-tabela-fornecedores"></tbody></table>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header flex-between">
+                            <div><h2>Instituições</h2><p class="section-desc">Locais de stock centralizados por sigla e província.</p></div>
+                            <button class="btn btn-primary btn-sm" data-open-modal="modal-instituicao">+ Nova Instituição</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table>                            <thead><tr><th>Nome</th><th>Sigla</th><th>Província</th><th>E-mail</th><th>Telefone</th><th>Ações</th></tr></thead>
+                                <tbody id="corpo-tabela-instituicoes"></tbody></table>
+                        </div>
+                    </div>
                 </section>
 
             </main>
@@ -319,147 +558,480 @@
     <!-- MODAIS DE OPERAÇÃO                         -->
     <!-- ========================================== -->
 
-    <!-- MODAL 1: Cadastrar Modelo -->
+    <!-- MODAL 1: Cadastrar Modelo com Engenharia -->
     <div id="modal-modelo" class="modal">
-        <div class="modal-content">
+        <div class="modal-content modal-content-wide">
             <div class="modal-header">
-                <h3>Cadastrar Modelo de Equipamento</h3>
+                <h3 id="titulo-modal-modelo">Cadastrar Modelo de Equipamento de Rede</h3>
                 <button class="btn-close" data-close-modal="modal-modelo">&times;</button>
             </div>
             <form id="form-equipamento">
-                <div class="form-group">
-                    <label for="marca">Marca:</label>
-                    <input type="text" id="marca" placeholder="Ex: Cisco, Mikrotik" required>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="marca">Marca:</label>
+                        <input type="text" id="marca" placeholder="Ex: Cisco, Huawei, MikroTik" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="modelo">Modelo:</label>
+                        <input type="text" id="modelo" placeholder="Ex: CloudEngine S5735, ISR 4331, CCR2004" required>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="modelo">Modelo:</label>
-                    <input type="text" id="modelo" placeholder="Ex: ISR 4331, RB3011" required>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <div class="flex-between">
+                            <label for="part-number">Part Number (P/N):</label>
+                            <button type="button" class="btn-link-action" data-ocr-target="part-number">📷 Ler via OCR</button>
+                        </div>
+                        <input type="text" id="part-number" placeholder="Ex: S5735-L48T4X-A, ISR4331/K9" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="modelo-categoria">Categoria:</label>
+                        <select id="modelo-categoria" required>
+                            <option value="switch">Switch de Acesso / Agregação</option>
+                            <option value="roteador">Roteador de Borda / Núcleo</option>
+                            <option value="firewall">Firewall / Segurança</option>
+                            <option value="olt">OLT (Fibra Óptica GPON)</option>
+                            <option value="servidor">Servidor de Datacenter</option>
+                            <option value="access_point">Access Point / Rádio</option>
+                            <option value="ups">UPS / Nobreak</option>
+                            <option value="transceiver">Transceiver SFP/QSFP</option>
+                            <option value="outro">Outro Equipamento</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="part-number">Part Number (P/N):</label>
-                    <input type="text" id="part-number" placeholder="Ex: ISR4331/K9" required>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="modelo-portas">Portas / Interfaces:</label>
+                        <input type="text" id="modelo-portas" placeholder="Ex: 48x GbE PoE+ + 4x 10GE SFP+">
+                    </div>
+                    <div class="form-group">
+                        <label for="modelo-banda">Capacidade de Banda / Throughput:</label>
+                        <input type="text" id="modelo-banda" placeholder="Ex: 176 Gbps / 10 Gbps">
+                    </div>
                 </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="modelo-vida-util">Expectativa de Vida Útil (Anos):</label>
+                        <input type="number" id="modelo-vida-util" value="5" min="1" max="20" required>
+                    </div>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="modelo-fibra">
+                        Suporta / Conecta a Fibra Escura MoRENet
+                    </label>
+                </div>
+
+                <fieldset id="secao-aquisicao-inicial" class="form-section">
+                    <legend>Dados da aquisição</legend>
+                    <p class="help-text">Registe a referência de compra do modelo. As unidades, instituição, estado e números de série são registados depois em Entrada de Stock.</p>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="modelo-fatura">Número da Fatura / Guia de Remessa:</label>
+                            <input type="text" id="modelo-fatura" maxlength="100" placeholder="Ex: FT-2026/8849" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="modelo-fornecedor">Fornecedor Autorizado:</label>
+                            <select id="modelo-fornecedor" required>
+                                <option value="">-- Selecione o Fornecedor --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="modelo-custo">Custo Unitário (MZN):</label>
+                            <input type="number" id="modelo-custo" min="0" max="9999999999999.99" step="0.01" placeholder="Ex: 85000.00" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="modelo-data-aquisicao">Data de Aquisição:</label>
+                            <input type="date" id="modelo-data-aquisicao" required>
+                        </div>
+                    </div>
+                </fieldset>
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-close-modal="modal-modelo">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Cadastrar Modelo</button>
+                    <button type="submit" class="btn btn-primary" id="btn-submeter-modelo">Cadastrar Modelo de Engenharia</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL 2: Registar Entrada -->
-    <div id="modal-entrada" class="modal">
-        <div class="modal-content">
+    <div id="modal-eliminar-serial" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
-                <h3>Registo de Entrada de Stock</h3>
+                <h3>Remover equipamento do inventário</h3>
+                <button class="btn-close" data-close-modal="modal-eliminar-serial" aria-label="Fechar">&times;</button>
+            </div>
+            <form id="form-eliminar-serial">
+                <input type="hidden" id="eliminar-serial-equipamento-id">
+                <input type="hidden" id="eliminar-serial-instituicao">
+                <p id="eliminar-serial-descricao" class="section-desc"></p>
+                <div class="form-group">
+                    <label for="eliminar-serial-valor">Número de Série (S/N):</label>
+                    <select id="eliminar-serial-valor" required></select>
+                </div>
+                <p class="help-text">A remoção é registada na auditoria e afeta o histórico associado ao serial selecionado.</p>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-close-modal="modal-eliminar-serial">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Remover do inventário</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Registar Entrada com Aquisição e Fornecedor -->
+    <div id="modal-entrada" class="modal">
+        <div class="modal-content modal-content-wide">
+            <div class="modal-header">
+                <h3>Registo de Entrada de Stock & Aquisição</h3>
                 <button class="btn-close" data-close-modal="modal-entrada">&times;</button>
             </div>
             <form id="form-entrada">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="select-equipamento">Modelo de Equipamento:</label>
+                        <select id="select-equipamento" required>
+                            <option value="">-- Selecione um modelo --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="select-instituicao-entrada">Instituição / Destino do Stock:</label>
+                        <select id="select-instituicao-entrada" required>
+                            <!-- Preenchido via JS com /api/instituicoes -->
+                        </select>
+                    </div>
+                </div>
+
                 <div class="form-group">
-                    <label for="select-equipamento">Modelo de Equipamento:</label>
-                    <select id="select-equipamento" required>
-                        <option value="">-- Selecione um modelo --</option>
+                    <div class="flex-between" style="margin-bottom: 6px;">
+                        <label for="serial-numbers" style="margin-bottom: 0;">Números de Série (S/N):</label>
+                        <button type="button" class="btn-link-action" data-ocr-target="serial-numbers">📷 Ler via OCR / Câmara</button>
+                    </div>
+                    <textarea id="serial-numbers" rows="3" placeholder="Insira um S/N por linha ou separados por vírgula..." required></textarea>
+                    <small class="help-text">A quantidade de itens em stock será calculada automaticamente com base nos números de série inseridos.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="entrada-estado-fisico">Estado Físico:</label>
+                    <select id="entrada-estado-fisico">
+                        <option value="novo">Novo em Caixa (Selado)</option>
+                        <option value="operacional">Operacional (Usado/Testado)</option>
+                        <option value="avariado">Avariado (Aguardando Reparo)</option>
+                        <option value="abatido">Abatido / Para Peças</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="serial-numbers">Serial Numbers (S/N):</label>
-                    <textarea id="serial-numbers" rows="3" placeholder="Insira um por linha ou separados por vírgula"
-                        required></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="instituicao">Instituição / Origem / Localização:</label>
-                    <input type="text" id="instituicao" placeholder="Ex: Sede Principal, Armazém A" required>
-                </div>
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-close-modal="modal-entrada">Cancelar</button>
-                    <button type="submit" class="btn btn-success">Registar Entrada</button>
+                    <button type="submit" class="btn btn-success">Registar Entrada no Inventário</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL 3: Transferência -->
-    <div id="modal-transferencia" class="modal">
-        <div class="modal-content">
+    <div id="modal-entrada-lote" class="modal">
+        <div class="modal-content modal-content-wide">
             <div class="modal-header">
-                <h3>Transferência de Equipamento</h3>
+                <div><h3>Registar Entrada em Lote</h3><p class="section-desc">Uma fatura, vários modelos e números de série.</p></div>
+                <button class="btn-close" data-close-modal="modal-entrada-lote" aria-label="Fechar">&times;</button>
+            </div>
+            <form id="form-entrada-lote">
+                <div class="form-row">
+                    <div class="form-group"><label for="lote-fatura">N.º da fatura</label><input id="lote-fatura" maxlength="100" required></div>
+                    <div class="form-group"><label for="lote-fornecedor">Fornecedor</label><select id="lote-fornecedor" required></select></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label for="lote-data">Data de aquisição</label><input type="date" id="lote-data" required></div>
+                    <div class="form-group"><label for="lote-instituicao">Instituição de destino</label><select id="lote-instituicao" required></select></div>
+                </div>
+                <div class="flex-between lote-heading">
+                    <h4>Equipamentos da fatura</h4>
+                    <button type="button" class="btn btn-outline btn-sm" id="btn-adicionar-linha-lote">+ Adicionar modelo</button>
+                </div>
+                <div id="linhas-entrada-lote" class="batch-lines"></div>
+                <div class="form-group"><label for="lote-observacoes">Observações (opcional)</label><textarea id="lote-observacoes" rows="2" maxlength="2000"></textarea></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-close-modal="modal-entrada-lote">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btn-submeter-entrada-lote">Gravar fatura e entradas</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <template id="template-linha-lote">
+        <fieldset class="batch-line">
+            <legend>Modelo</legend>
+            <button type="button" class="batch-remove btn-icon-topbar" data-remove-batch-line aria-label="Remover modelo">&times;</button>
+            <div class="form-row">
+                <div class="form-group"><label>Categoria</label><select data-batch-category required>
+                    <option value="">Todas</option><option value="roteador">Roteador</option><option value="switch">Switch</option>
+                    <option value="firewall">Firewall</option><option value="olt">OLT</option><option value="servidor">Servidor</option>
+                    <option value="access_point">Access Point</option><option value="ups">UPS</option><option value="transceiver">Transceiver</option><option value="outro">Outro</option>
+                </select></div>
+                <div class="form-group"><label>Modelo</label><select data-batch-model required></select></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Custo unitário</label><input type="number" data-batch-cost min="0" step="0.01" required></div>
+                <div class="form-group"><label>Estado físico</label><select data-batch-state required>
+                    <option value="novo">Novo</option><option value="operacional">Operacional</option><option value="avariado">Avariado</option><option value="abatido">Abatido</option>
+                </select></div>
+            </div>
+            <div class="form-group">
+                <div class="flex-between"><label>Números de série (um por linha)</label><button type="button" class="btn-link-action" data-ocr-target="batch-serials">📷 Ler etiqueta</button></div>
+                <textarea data-batch-serials rows="3" required placeholder="SN-001&#10;SN-002"></textarea>
+            </div>
+        </fieldset>
+    </template>
+
+    <div id="modal-estado-ativo" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Alterar estado do ativo</h3><button class="btn-close" data-close-modal="modal-estado-ativo" aria-label="Fechar">&times;</button></div>
+            <form id="form-estado-ativo">
+                <input type="hidden" id="estado-equipamento-id">
+                <div class="form-group"><label for="estado-serial">Número de série</label><select id="estado-serial" required></select></div>
+                <div class="form-group"><label for="estado-novo">Novo estado</label><select id="estado-novo" required>
+                    <option value="novo">Novo</option><option value="operacional">Operacional</option><option value="avariado">Avariado</option><option value="abatido">Abatido</option>
+                </select></div>
+                <div class="form-group"><label for="estado-justificativa">Justificativa / Observações</label><textarea id="estado-justificativa" rows="4" minlength="3" maxlength="2000" required></textarea></div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-close-modal="modal-estado-ativo">Cancelar</button><button class="btn btn-primary" type="submit">Guardar alteração auditável</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-fornecedor" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="titulo-modal-fornecedor">Novo fornecedor</h3><button class="btn-close" data-close-modal="modal-fornecedor" aria-label="Fechar">&times;</button></div>
+            <form id="form-fornecedor">
+                <input type="hidden" id="fornecedor-id">
+                <div class="form-group"><label for="fornecedor-nome">Empresa</label><input id="fornecedor-nome" required maxlength="255"></div>
+                <div class="form-row"><div class="form-group"><label for="fornecedor-contacto">Pessoa de contacto</label><input id="fornecedor-contacto" maxlength="255"></div><div class="form-group"><label for="fornecedor-telefone">Telefone</label><input id="fornecedor-telefone" maxlength="50"></div></div>
+                <div class="form-row"><div class="form-group"><label for="fornecedor-email">E-mail</label><input type="email" id="fornecedor-email" maxlength="255"></div><div class="form-group"><label for="fornecedor-nif">NIF</label><input id="fornecedor-nif" maxlength="50"></div></div>
+                <div class="form-group"><label for="fornecedor-endereco">Endereço</label><textarea id="fornecedor-endereco" rows="2"></textarea></div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-close-modal="modal-fornecedor">Cancelar</button><button type="submit" class="btn btn-primary">Guardar fornecedor</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-instituicao" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="titulo-modal-instituicao">Nova instituição</h3><button class="btn-close" data-close-modal="modal-instituicao" aria-label="Fechar">&times;</button></div>
+            <form id="form-instituicao">
+                <input type="hidden" id="instituicao-id">
+                <div class="form-group"><label for="instituicao-nome">Nome</label><input id="instituicao-nome" required maxlength="255"></div>
+                <div class="form-row"><div class="form-group"><label for="instituicao-sigla">Sigla</label><input id="instituicao-sigla" required maxlength="50"></div><div class="form-group"><label for="instituicao-provincia">Província</label><input id="instituicao-provincia" required maxlength="100"></div></div>
+                <div class="form-row"><div class="form-group"><label for="instituicao-email">E-mail</label><input type="email" id="instituicao-email" maxlength="255"></div><div class="form-group"><label for="instituicao-telefone">Telefone</label><input type="tel" id="instituicao-telefone" maxlength="50"></div></div>
+                <div class="form-group"><label for="instituicao-endereco">Endereço</label><textarea id="instituicao-endereco" rows="2"></textarea></div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-close-modal="modal-instituicao">Cancelar</button><button type="submit" class="btn btn-primary">Guardar instituição</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: Transferência com Transação e Dados da Guia -->
+    <div id="modal-transferencia" class="modal">
+        <div class="modal-content modal-content-wide">
+            <div class="modal-header">
+                <h3>Transferência Oficial de Equipamento</h3>
                 <button class="btn-close" data-close-modal="modal-transferencia">&times;</button>
             </div>
             <form id="form-transferencia">
-                <div class="form-group">
-                    <label for="select-equipamento-transf">Modelo de Equipamento:</label>
-                    <select id="select-equipamento-transf" required>
-                        <option value="">-- Selecione um modelo --</option>
-                    </select>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="select-equipamento-transf">Modelo de Equipamento:</label>
+                        <select id="select-equipamento-transf" required>
+                            <option value="">-- Selecione um modelo --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="origem-transf">Origem (Local Atual com Stock):</label>
+                        <select id="origem-transf" required>
+                            <option value="">-- Selecione a origem --</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="origem-transf">Origem (Local Atual):</label>
-                    <select id="origem-transf" required>
-                        <option value="">-- Selecione a origem --</option>
-                    </select>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="destino-transf">Instituição de Destino:</label>
+                        <select id="destino-transf" required>
+                            <!-- Preenchido via JS a partir de /api/instituicoes -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="transf-tipo-guia">Tipo de Guia Oficial:</label>
+                        <select id="transf-tipo-guia">
+                            <option value="saida">Guia de Saída Oficial</option>
+                            <option value="transferencia">Guia de Transferência / Trânsito</option>
+                        </select>
+                    </div>
                 </div>
+
                 <div class="form-group">
-                    <label for="destino-transf">Destino (Novo Local):</label>
-                    <input type="text" id="destino-transf" placeholder="Ex: Filial B, Armazém Central" required>
-                </div>
-                <div class="form-group">
-                    <label for="serials-transf">Serial Numbers a Transferir:</label>
-                    <select id="serials-transf" class="form-control" multiple size="6" required>
+                    <label for="serials-transf">Serial Numbers a Transferir (Disponíveis na Origem):</label>
+                    <select id="serials-transf" class="form-control" multiple size="5" required>
                         <!-- As opções serão preenchidas dinamicamente pelo JavaScript -->
                     </select>
-                    <small class="help-text">Mantenha a tecla <strong>Ctrl</strong> (ou <strong>Cmd</strong> no Mac)
-                        pressionada para selecionar múltiplos números de série.</small>
+                    <small class="help-text">Mantenha a tecla <strong>Ctrl</strong> (ou <strong>Cmd</strong>) pressionada para selecionar múltiplos números de série.</small>
                 </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="transf-responsavel">Responsável pelo Transporte:</label>
+                        <input type="text" id="transf-responsavel" placeholder="Ex: Eng. Victor Guambe / Motorista Alberto">
+                    </div>
+                    <div class="form-group">
+                        <label for="transf-matricula">Matrícula da Viatura:</label>
+                        <input type="text" id="transf-matricula" placeholder="Ex: AFG-123-MP">
+                    </div>
+                </div>
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-close-modal="modal-transferencia">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Efetuar Transferência</button>
+                    <button type="submit" class="btn btn-primary">Processar Transferência Transacional</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL 4: Editar Modelo / Registo -->
-    <div id="modal-editar" class="modal">
+    <!-- MODAL 4: Leitor OCR de Etiquetas -->
+    <div id="modal-ocr" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Editar modelo e seriais</h3>
-                <button class="btn-close" data-close-modal="modal-editar">&times;</button>
+                <h3>Leitor OCR de Etiquetas de Equipamento</h3>
+                <button class="btn-close" data-close-modal="modal-ocr">&times;</button>
             </div>
-            <form id="form-editar-equipamento">
-                <input type="hidden" id="edit-id">
+            <div class="ocr-body">
+                <p class="section-desc">Capture da câmara do telemóvel ou carregue a foto da etiqueta para extrair S/N e P/N automaticamente.</p>
 
-                <div class="form-group">
-                    <label for="edit-marca">Marca:</label>
-                    <input type="text" id="edit-marca" required>
+                <div class="ocr-controls">
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-iniciar-camera">📷 Iniciar Câmara</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-capturar-foto" style="display: none;">📸 Capturar Foto</button>
+                    <label class="btn btn-outline btn-sm" style="cursor: pointer;">
+                        📁 Carregar Ficheiro de Foto
+                        <input type="file" id="input-foto-ocr" accept="image/*" style="display: none;">
+                    </label>
                 </div>
-                <div class="form-group">
-                    <label for="edit-modelo">Modelo:</label>
-                    <input type="text" id="edit-modelo" required>
+
+                <div class="ocr-preview-container" style="text-align: center; margin: 15px 0;">
+                    <video id="ocr-video" autoplay playsinline style="max-width: 100%; border-radius: 6px; display: none;"></video>
+                    <img id="ocr-imagem-preview" style="max-width: 100%; max-height: 250px; border-radius: 6px; display: none;" alt="Preview da Etiqueta">
+                    <canvas id="ocr-canvas" style="display: none;"></canvas>
                 </div>
-                <div class="form-group">
-                    <label for="edit-part-number">Part Number (P/N):</label>
-                    <input type="text" id="edit-part-number" required>
+
+                <div id="ocr-resultados" class="ocr-results" style="display: none; background: #f1f5f9; padding: 12px; border-radius: 6px;">
+                    <div style="font-weight: bold; margin-bottom: 6px; color: #1e293b;">Identificadores Detetados:</div>
+                    <div><strong>S/N Identificados:</strong> <span id="ocr-serials-detectados">Nenhum</span></div>
+                    <div><strong>P/N Identificados:</strong> <span id="ocr-pn-detectados">Nenhum</span></div>
                 </div>
+                <p id="ocr-status" class="help-text" role="status" aria-live="polite"></p>
                 <div class="form-group">
-                    <label for="edit-instituicao">Instituição / Localização:</label>
-                    <input type="text" id="edit-instituicao" required>
-                    <input type="hidden" id="edit-instituicao-original">
+                    <label for="ocr-texto-etiqueta">Texto reconhecido (pode corrigir antes de aplicar)</label>
+                    <textarea id="ocr-texto-etiqueta" rows="3" placeholder="O texto reconhecido da imagem aparecerá aqui. Ex.: Serial #: ABC123456&#10;Prod #: XYZ-100"></textarea>
+                    <small class="help-text">O reconhecimento é processado localmente no navegador; a imagem não é enviada ao servidor.</small>
                 </div>
-                <div class="form-group">
-                    <label>Seriais na instituição selecionada:</label>
-                    <p id="edit-local-contexto" class="section-desc"></p>
-                    <div id="edit-seriais-lista" class="serial-manager-list"></div>
+                <button type="button" class="btn btn-outline btn-sm" id="btn-analisar-ocr">Analisar texto reconhecido</button>
+                <details id="ocr-diagnostico-container" hidden style="margin-top: 12px;">
+                    <summary>Diagnóstico OCR para suporte</summary>
+                    <p class="help-text">Inclui texto bruto reconhecido, que pode conter números de série. O diagnóstico fica neste dispositivo e só é partilhado se o copiar; pode ocultar dados sensíveis antes de o enviar.</p>
+                    <textarea id="ocr-diagnostico" rows="10" readonly aria-label="Log de diagnóstico OCR" style="font-family: monospace; font-size: 0.8rem;"></textarea>
+                    <button type="button" class="btn btn-outline btn-sm" id="btn-copiar-diagnostico-ocr">Copiar diagnóstico</button>
+                </details>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close-modal="modal-ocr">Fechar</button>
+                <button type="button" class="btn btn-success" id="btn-aplicar-ocr" disabled>Aplicar Dados</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 5: Gerador de Etiquetas QR Code -->
+    <div id="modal-etiqueta-qr" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Etiqueta de Património com QR Code</h3>
+                <button class="btn-close" data-close-modal="modal-etiqueta-qr">&times;</button>
+            </div>
+            <div id="container-etiqueta-impressao" style="padding: 10px; background: #ffffff;">
+                <!-- Montado dinamicamente via qrcode.js -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close-modal="modal-etiqueta-qr">Fechar</button>
+                <button type="button" class="btn btn-print" id="btn-imprimir-etiqueta">🖨️ Imprimir Etiqueta</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 6: Importar Stock via CSV -->
+    <div id="modal-importar-csv" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Importação em Lote via CSV (Excel)</h3>
+                <button class="btn-close" data-close-modal="modal-importar-csv">&times;</button>
+            </div>
+            <form id="form-importar-csv">
+                <p class="section-desc">Selecione um ficheiro CSV contendo as colunas: <code>marca, modelo, part_number, categoria, serials, instituicao, fatura, custo</code>.</p>
+
+                <div class="form-group" style="margin: 20px 0;">
+                    <input type="file" id="input-ficheiro-csv" accept=".csv" required class="form-control">
                 </div>
+
+                <div id="progresso-importacao" style="display: none; padding: 10px; background: #e0f2fe; border-radius: 6px; color: #0369a1;">
+                    A processar importação transacional...
+                </div>
+
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-close-modal="modal-editar">Cancelar</button>
-                    <button type="submit" class="btn btn-success">Salvar Alterações</button>
+                    <button type="button" class="btn btn-secondary" data-close-modal="modal-importar-csv">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btn-submeter-csv">Importar Ficheiro</button>
                 </div>
             </form>
         </div>
     </div>
-    <!-- ========================================== -->
-    <!-- Container para mensagens Toast -->
-    <!-- MODAL 5: Confirmação Personalizada -->
+
+    <!-- MODAL 7: Alterar Palavra-passe -->
+    <div id="modal-senha" class="modal">
+        <div class="modal-content" style="max-width: 440px;">
+            <div class="modal-header">
+                <h3>Alterar Minha Palavra-Passe</h3>
+                <button class="btn-close" data-close-modal="modal-senha">&times;</button>
+            </div>
+            <form id="form-alterar-senha">
+                <div class="form-group">
+                    <label for="senha-atual">Palavra-passe Atual:</label>
+                    <input type="password" id="senha-atual" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="senha-nova">Nova Palavra-passe:</label>
+                    <input type="password" id="senha-nova" minlength="8" required class="form-control" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="senha-confirma">Confirmar Nova Palavra-passe:</label>
+                    <input type="password" id="senha-confirma" minlength="8" required class="form-control" autocomplete="new-password">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-close-modal="modal-senha">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Nova Senha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-repor-senha" class="modal">
+        <div class="modal-content" style="max-width:440px">
+            <div class="modal-header"><h3>Repor palavra-passe</h3><button class="btn-close" data-close-modal="modal-repor-senha" aria-label="Fechar">&times;</button></div>
+            <form id="form-repor-senha">
+                <input type="hidden" id="repor-senha-usuario-id">
+                <p id="repor-senha-utilizador" class="section-desc"></p>
+                <div class="form-group"><label for="repor-senha-nova">Nova palavra-passe temporária</label><input id="repor-senha-nova" type="password" minlength="8" autocomplete="new-password" required></div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-close-modal="modal-repor-senha">Cancelar</button><button type="submit" class="btn btn-primary">Repor senha</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 8: Confirmação Personalizada -->
     <div id="modal-confirmacao" class="modal">
         <div class="modal-content" style="max-width: 440px; text-align: center;">
             <div class="modal-header" style="justify-content: center; border-bottom: none; padding-bottom: 0;">
@@ -473,22 +1045,25 @@
         </div>
     </div>
 
-    <div id="modal-eliminar-seriais" class="modal">
-        <div class="modal-content modal-content-wide">
-            <div class="modal-header">
-                <h3>Eliminar número de série</h3>
-                <button class="btn-close" data-close-modal="modal-eliminar-seriais" aria-label="Fechar">&times;</button>
-            </div>
-            <p id="eliminar-seriais-contexto" class="section-desc"></p>
-            <div id="lista-seriais-eliminar" class="serial-manager-list"></div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-close-modal="modal-eliminar-seriais">Concluir</button>
-            </div>
-        </div>
-    </div>
-
+    <!-- Toast Notifications Container -->
     <div id="toast-container" class="toast-container"></div>
-    <script src="script.js"></script>
+
+    <!-- SCRIPTS DO FRONTEND (PWA & Offline First) -->
+    <script src="qrcode.js"></script>
+    <script src="/ocr-assets/tesseract.min.js"></script>
+    <script src="ocr.js?v=18"></script>
+    <script src="script.js?v=17"></script>
+
+    <!-- Registo do Service Worker para PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js?v=20')
+                    .then(reg => console.log('✅ ServiceWorker sgStock registado:', reg.scope))
+                    .catch(err => console.error('❌ Falha ao registar ServiceWorker:', err));
+            });
+        }
+    </script>
 
 </body>
 

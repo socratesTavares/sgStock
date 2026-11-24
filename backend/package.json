@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "test": "jest --runInBand --detectOpenHandles --forceExit",
     "migrate": "node migrations/run_migration.js",
     "prod": "pm2 start ecosystem.config.js --env production",
     "prod:reload": "pm2 reload ecosystem.config.js",
@@ -16,6 +17,7 @@
   "keywords": [],
   "type": "commonjs",
   "dependencies": {
+    "@tesseract.js-data/eng": "^1.0.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^18.0.6",
@@ -23,9 +25,14 @@
     "express-rate-limit": "^8.7.2",
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
-    "pg": "^8.23.1"
+    "multer": "^2.5.0",
+    "nodemailer": "^10.5.0",
+    "pg": "^8.23.1",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "jest": "^30.5.2",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.3.2"
   }
 }

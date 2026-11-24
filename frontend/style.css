@@ -503,12 +503,16 @@ tbody tr:hover {
     z-index: 1000;
     align-items: center;
     justify-content: center;
+    padding: 1rem;
+    overflow-y: auto;
 }
 
 .modal-content {
     background: #ffffff;
     width: 90%;
     max-width: 550px;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
     border-radius: var(--radius);
     padding: 1.5rem;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
@@ -785,6 +789,30 @@ tbody tr:hover {
 
 /* Imprime apenas o documento gerado, sem limites de scroll */
 @media print {
+    @page {
+        size: A4 portrait;
+        margin: 0;
+    }
+
+    html,
+    body {
+        width: 210mm !important;
+        min-height: 0 !important;
+        height: auto !important;
+        overflow: visible !important;
+        background: #fff !important;
+    }
+
+    body.imprimir-apenas-documento .sidebar,
+    body.imprimir-apenas-documento .mobile-header,
+    body.imprimir-apenas-documento .topbar,
+    body.imprimir-apenas-documento .preview-actions,
+    body.imprimir-apenas-documento .sidebar-overlay,
+    body.imprimir-apenas-documento .toast-container,
+    body.imprimir-apenas-documento button {
+        display: none !important;
+    }
+
     body.imprimir-apenas-documento * {
         visibility: hidden !important;
     }
@@ -808,6 +836,17 @@ tbody tr:hover {
         padding: 15mm 12mm !important;
         margin: 0 !important;
         background: white !important;
+        break-inside: auto !important;
+    }
+
+    body.imprimir-apenas-documento #area-preview-impressao table {
+        width: 100% !important;
+        break-inside: auto;
+    }
+
+    body.imprimir-apenas-documento #area-preview-impressao tr,
+    body.imprimir-apenas-documento #area-preview-impressao .guia-assinatura-box {
+        break-inside: avoid;
     }
 
     body, html {
@@ -816,9 +855,6 @@ tbody tr:hover {
         background: white !important;
     }
 
-    @page {
-        margin: 0;
-    }
 }
 
 
@@ -869,4 +905,606 @@ tbody tr:hover {
     display: none;
     align-items: center;
     gap: 8px;
+}
+
+/* ==========================================================================
+   10. Governação Tecnológica, Asset Health, QR Codes e Audit Hub
+   ========================================================================== */
+
+/* Topbar Ajustes */
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 1.5rem;
+}
+
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.badge-status {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-online {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.badge-offline {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.badge-instituicao {
+    background: #e0f2fe;
+    color: #0369a1;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.btn-icon-topbar {
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.btn-icon-topbar:hover {
+    background: var(--table-header-bg);
+    color: var(--primary-color);
+}
+
+/* Badges e Botões de Filtro da Matriz de Saúde (Asset Health) */
+.badge-saude {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.badge-saude-ok {
+    background-color: #dcfce7;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+.badge-saude-alerta {
+    background-color: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+
+.badge-saude-fim {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+.health-filters {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-filter-health {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-filter-health.active, .btn-filter-health:hover {
+    background: #1e293b;
+    color: #ffffff;
+    border-color: #1e293b;
+}
+
+.kpi-card.kpi-highlight {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+    color: #ffffff;
+}
+
+.kpi-card.kpi-highlight .kpi-title,
+.kpi-card.kpi-highlight .kpi-subtext {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.kpi-card.kpi-highlight .kpi-value {
+    color: #ffffff;
+}
+
+.kpi-subtext {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+/* Botões Especializados */
+.btn-ocr {
+    background-color: #0284c7;
+    color: #ffffff;
+}
+
+.btn-ocr:hover {
+    background-color: #0369a1;
+}
+
+.btn-outline {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+.btn-outline:hover {
+    background-color: var(--table-header-bg);
+}
+
+.btn-link-action {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+}
+
+.btn-link-action:hover {
+    text-decoration: underline;
+}
+
+/* Modais Largos */
+.modal-content-wide {
+    max-width: 720px;
+}
+
+.ocr-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.ocr-preview-container video,
+.ocr-preview-container img {
+    width: 100%;
+    max-height: 55vh;
+    object-fit: contain;
+    background: #0f172a;
+}
+
+#modal-ocr .modal-content {
+    width: min(94vw, 720px);
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 0.5rem;
+}
+
+.checkbox-group label {
+    margin-bottom: 0;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Centro de Auditoria */
+.audit-filter-bar {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.audit-filter-bar input,
+.audit-filter-bar select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+}
+
+.audit-filter-bar input {
+    flex: 1;
+    min-width: 200px;
+}
+
+.badge-audit-acao {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+/* Etiquetas Imprimíveis com QR Code */
+.etiqueta-ativo-box {
+    border: 2px solid #0f172a;
+    border-radius: 6px;
+    padding: 10px;
+    font-family: Arial, sans-serif;
+    color: #000000;
+    background: #ffffff;
+    max-width: 440px;
+    margin: 0 auto;
+}
+
+.etiqueta-topo {
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.etiqueta-org {
+    display: block;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+.etiqueta-patrimonio {
+    display: block;
+    font-size: 12px;
+    font-weight: 900;
+    color: #1e3a8a;
+    margin-top: 2px;
+}
+
+.etiqueta-corpo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.etiqueta-qr {
+    flex-shrink: 0;
+}
+
+.etiqueta-detalhes {
+    flex: 1;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.etiqueta-item {
+    margin-bottom: 3px;
+    word-break: break-word;
+}
+
+.destaque-sn {
+    font-family: monospace;
+    font-weight: bold;
+    font-size: 13px;
+    color: #0f172a;
+    background: #f1f5f9;
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+.etiqueta-rodape {
+    border-top: 1px dashed #64748b;
+    margin-top: 8px;
+    padding-top: 4px;
+    font-size: 9px;
+    text-align: center;
+    color: #475569;
+}
+
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 0;
+    }
+
+    body.imprimir-apenas-etiqueta * {
+        visibility: hidden !important;
+    }
+    body.imprimir-apenas-etiqueta #container-etiqueta-impressao,
+    body.imprimir-apenas-etiqueta #container-etiqueta-impressao * {
+        visibility: visible !important;
+    }
+    body.imprimir-apenas-etiqueta #container-etiqueta-impressao {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 5mm !important;
+    }
+}
+
+.batch-lines {
+    display: grid;
+    gap: 1rem;
+}
+
+.batch-line {
+    position: relative;
+    min-width: 0;
+    padding: 1.25rem 1rem 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: #f8fafc;
+}
+
+.batch-line legend {
+    padding: 0 0.5rem;
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.batch-remove {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.5rem;
+    width: 2rem;
+    height: 2rem;
+    font-size: 1.25rem;
+}
+
+.lote-heading {
+    margin: 1.25rem 0 0.75rem;
+}
+
+.badge-fisico {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.18rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.badge-fisico-novo {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.badge-fisico-operacional {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.badge-fisico-avariado {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.badge-fisico-abatido {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.badge-fisico-desconhecido {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.audit-date-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.audit-date-filter input {
+    min-width: 9.5rem;
+}
+
+.audit-change {
+    max-width: 24rem;
+    overflow-wrap: anywhere;
+}
+
+.audit-justification {
+    display: block;
+    margin-top: 0.35rem;
+    color: #92400e;
+}
+
+.table-actions {
+    white-space: nowrap;
+}
+
+.table-actions .btn + .btn {
+    margin-left: 0.35rem;
+}
+
+.stock-serial-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.stock-serial {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin: 0.1rem;
+}
+
+.empty-state {
+    padding: 1.25rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.form-section {
+    margin: 1rem 0;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--table-header-bg);
+}
+
+.form-section legend {
+    padding: 0 0.4rem;
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.form-section[hidden],
+#campos-aquisicao-inicial[hidden] {
+    display: none;
+}
+
+.asset-health-row {
+    cursor: pointer;
+}
+
+.asset-health-row:hover {
+    background: #eff6ff;
+}
+
+.asset-health-row:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+}
+
+.asset-row-highlight {
+    animation: asset-row-pulse 0.8s ease-in-out 4;
+}
+
+@keyframes asset-row-pulse {
+    50% { background-color: #fde68a; }
+}
+
+#container-etiqueta-impressao {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 0.75rem;
+}
+
+.etiqueta-ativo-box {
+    width: 100%;
+    break-inside: avoid;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    padding: 0.75rem 0.25rem;
+}
+
+.pagination-controls[hidden] {
+    display: none;
+}
+
+.pagination-summary {
+    min-width: 5.5rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .topbar,
+    .topbar-right {
+        flex-wrap: wrap;
+    }
+
+    .topbar-right {
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+
+    .audit-date-filter {
+        flex: 1 1 100%;
+    }
+
+    .audit-date-filter input {
+        flex: 1;
+    }
+
+    .batch-line {
+        padding-inline: 0.75rem;
+    }
+
+    .pagination-controls {
+        justify-content: center;
+    }
+
+    .table-responsive {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+    }
+
+    .table-responsive > table {
+        min-width: 640px;
+    }
+
+    #tabela-asset-health {
+        min-width: 920px;
+    }
+
+    #tabela-stock,
+    #tabela-historico,
+    #tabela-transferencias {
+        min-width: 760px;
+    }
+
+    #container-etiqueta-impressao {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media print {
+    body.imprimir-apenas-etiqueta #container-etiqueta-impressao {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        align-items: start;
+        gap: 5mm !important;
+    }
+
+    body.imprimir-apenas-etiqueta .etiqueta-ativo-box {
+        max-width: none;
+        margin: 0;
+        break-inside: avoid;
+    }
 }
